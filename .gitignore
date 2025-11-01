@@ -1,0 +1,63 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual Environment
+venv/
+ENV/
+env/
+.venv
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Streamlit
+.streamlit/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Model cache (optional - uncomment if you don't want to track models)
+# .cache/
+# models/
+
+# Test files
+*.test
+test_*.py
+
+# Temporary files
+*.tmp
+*.temp
+
+# Data (다운로드된 데이터셋 - 용량이 큼)
+data/
+*.tar.gz
+*.zip
+*.7z
+
