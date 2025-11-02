@@ -1,7 +1,14 @@
 import streamlit as st
 from src.text_quality import analyze_text_quality
 from src.image_quality import analyze_image_quality
-from src.utils import calc_total_score, get_grade
+from src.utils import (
+    calc_total_score, 
+    get_grade,
+    generate_text_report_pdf,
+    generate_image_report_pdf,
+    generate_dataset_report_pdf
+)
+from datetime import datetime
 from src.dataset_analyzer import (
 analyze_dataset_images,
 analyze_dataset_texts,
@@ -110,8 +117,8 @@ b der: 1px solid#d9e2f3;
 </style>
 """,unsafe_allow_html = True)
 
-st.title("AI학습용비정형데이터품질진단프로그램")
-st.caption("텍스트또는이미지를업로드하면품질점수를자동으로계산합니다.")
+st.title("AI 학습용 비정형데이터 품질진단 프로그램")
+st.caption("텍스트 또는 이미지를 업로드하면 품질점수를 자동으로 계산합니다.")
 
 #탭생성
 tab1, tab2 = st.tabs(["단일 파일 분석", "데이터셋 배치 분석"])
@@ -122,7 +129,7 @@ with st.sidebar:
     st.markdown("샘플 데이터로 테스트해보세요!")
     
     if st.button("샘플 텍스트 테스트"):
-        sample_text_path = "sample_data/sample_text.txt"
+        sample_text_path = "data/test_texts/sample_text.txt"
         try:
             with open(sample_text_path, "r", encoding="utf-8") as f:
                 sample_text = f.read()
@@ -191,6 +198,16 @@ with tab1:
                     text = uploaded_file.read().decode("utf-8")
                     text_scores = analyze_text_quality(text)
                 
+                # 결과를 세션에 저장
+                total = calc_total_score(text_scores)
+                grade = get_grade(total)
+                st.session_state['last_text_analysis'] = {
+                    'scores': text_scores,
+                    'total': total,
+                    'grade': grade,
+                    'file_name': uploaded_file.name
+                }
+                
                 # 결과 표시
                 col1, col2 = st.columns([2, 1])
                 
@@ -203,8 +220,6 @@ with tab1:
                     st.text_area("분석된 텍스트 내용", text, height=150, disabled=True)
                 
                 with col2:
-                    total = calc_total_score(text_scores)
-                    grade = get_grade(total)
                     st.metric("종합 품질 점수", f"{total:.3f}")
                     st.metric("품질 등급", grade)
                     
@@ -220,12 +235,27 @@ with tab1:
                 st.subheader("상세 품질 지표 분석")
                 st.bar_chart(text_scores)
                 
+                # PDF 다운로드 버튼
+                st.divider()
+                pdf_buffer = generate_text_report_pdf(text_scores, total, grade)
+                filename = f"text_quality_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
+                st.download_button(
+                    label="📄 PDF 보고서 다운로드",
+                    data=pdf_buffer.getvalue(),
+                    file_name=filename,
+                    mime="application/pdf",
+                    type="primary",
+                    use_container_width=True
+                )
+                
                 # 새 분석 버튼
                 if st.button("새 파일로 분석하기"):
                     if 'file_type' in st.session_state:
                         del st.session_state['file_type']
                     if 'uploaded_file' in st.session_state:
                         del st.session_state['uploaded_file']
+                    if 'last_text_analysis' in st.session_state:
+                        del st.session_state['last_text_analysis']
                     st.rerun()
     
         elif file_type == 'image':
@@ -251,6 +281,16 @@ with tab1:
                     with st.spinner("이미지 품질을 분석 중입니다..."):
                         image_scores = analyze_image_quality(img)
     
+                    # 결과를 세션에 저장
+                    total = calc_total_score(image_scores)
+                    grade = get_grade(total)
+                    st.session_state['last_image_analysis'] = {
+                        'scores': image_scores,
+                        'total': total,
+                        'grade': grade,
+                        'file_name': uploaded_file.name
+                    }
+    
                     # 결과 표시
                     st.subheader("분석 결과")
                     
@@ -263,8 +303,6 @@ with tab1:
                         )
                     
                     with result_col2:
-                        total = calc_total_score(image_scores)
-                        grade = get_grade(total)
                         st.metric("종합 품질 점수", f"{total:.3f}")
                         st.metric("품질 등급", grade)
                         
@@ -280,12 +318,27 @@ with tab1:
                     st.subheader("상세 품질 지표 분석")
                     st.bar_chart(image_scores)
                     
+                    # PDF 다운로드 버튼
+                    st.divider()
+                    pdf_buffer = generate_image_report_pdf(image_scores, total, grade)
+                    filename = f"image_quality_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
+                    st.download_button(
+                        label="📄 PDF 보고서 다운로드",
+                        data=pdf_buffer.getvalue(),
+                        file_name=filename,
+                        mime="application/pdf",
+                        type="primary",
+                        use_container_width=True
+                    )
+                    
                     # 새 분석 버튼
                     if st.button("새 파일로 분석하기", use_container_width=True):
                         if 'file_type' in st.session_state:
                             del st.session_state['file_type']
                         if 'uploaded_file' in st.session_state:
                             del st.session_state['uploaded_file']
+                        if 'last_image_analysis' in st.session_state:
+                            del st.session_state['last_image_analysis']
                         st.rerun()
     
     # 세션에 저장된 샘플 텍스트가 있으면 처리
@@ -296,6 +349,16 @@ with tab1:
         if st.button("텍스트 품질 분석 시작", type="primary", use_container_width=True):
             with st.spinner("텍스트 품질을 분석 중입니다..."):
                 text_scores = analyze_text_quality(text)
+            
+            # 결과를 세션에 저장
+            total = calc_total_score(text_scores)
+            grade = get_grade(total)
+            st.session_state['last_text_analysis'] = {
+                'scores': text_scores,
+                'total': total,
+                'grade': grade,
+                'file_name': 'sample_text.txt'
+            }
             
             col1, col2 = st.columns([2, 1])
             
@@ -308,8 +371,6 @@ with tab1:
                 st.text_area("분석된 텍스트 내용", text, height=150, disabled=True)
             
             with col2:
-                total = calc_total_score(text_scores)
-                grade = get_grade(total)
                 st.metric("종합 품질 점수", f"{total:.3f}")
                 st.metric("품질 등급", grade)
                 
@@ -324,11 +385,26 @@ with tab1:
             
             st.subheader("상세 품질 지표 분석")
             st.bar_chart(text_scores)
+            
+            # PDF 다운로드 버튼
+            st.divider()
+            pdf_buffer = generate_text_report_pdf(text_scores, total, grade)
+            filename = f"text_quality_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
+            st.download_button(
+                label="📄 PDF 보고서 다운로드",
+                data=pdf_buffer.getvalue(),
+                file_name=filename,
+                mime="application/pdf",
+                type="primary",
+                use_container_width=True
+            )
         
         # 세션 상태 초기화 버튼
         if st.button("새 파일로 분석하기"):
             if 'sample_text' in st.session_state:
                 del st.session_state['sample_text']
+            if 'last_text_analysis' in st.session_state:
+                del st.session_state['last_text_analysis']
             st.rerun()
     
     else:
@@ -854,6 +930,19 @@ with tab2:
                             with cols[i]:
                                 st.image(img, use_container_width=True)
                                 st.caption(f"이미지 {i+1}")
+                    
+                    # PDF 다운로드 버튼
+                    st.divider()
+                    pdf_buffer = generate_dataset_report_pdf(results, "이미지", dataset_option)
+                    filename = f"image_dataset_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
+                    st.download_button(
+                        label="📄 PDF 보고서 다운로드",
+                        data=pdf_buffer.getvalue(),
+                        file_name=filename,
+                        mime="application/pdf",
+                        type="primary",
+                        use_container_width=True
+                    )
                 
                 # 텍스트 분석
                 elif texts:
@@ -911,6 +1000,19 @@ with tab2:
                         for i, text in enumerate(texts[:3]):
                             with st.expander(f"텍스트 {i+1} (길이: {len(text)}자)"):
                                 st.text(text[:500] + "..." if len(text) > 500 else text)
+                    
+                    # PDF 다운로드 버튼
+                    st.divider()
+                    pdf_buffer = generate_dataset_report_pdf(results, "텍스트", dataset_option)
+                    filename = f"text_dataset_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
+                    st.download_button(
+                        label="📄 PDF 보고서 다운로드",
+                        data=pdf_buffer.getvalue(),
+                        file_name=filename,
+                        mime="application/pdf",
+                        type="primary",
+                        use_container_width=True
+                    )
     
         except ImportError as e:
             st.error(f"필요한 패키지가 설치되어 있지 않습니다.\n`pip install torchvision`을 실행하세요.\n\n에러: {e}")

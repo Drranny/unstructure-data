@@ -91,7 +91,7 @@ pip install -r requirements.txt
 streamlit run app.py
 ```
 
-브라우저에서 자동으로 열리며, `http://localhost:8501`에서 접속할 수 있습니다.
+브라우저에서 자동으로 열리며, `http://localhost:8502`에서 접속할 수 있습니다.
 
 #### SSH 서버 실행
 ```bash

@@ -57,6 +57,9 @@ test_*.py
 
 # Data (다운로드된 데이터셋 - 용량이 큼)
 data/
+# 무시 예외 
+!data/test_texts/sample_text.txt
+# 나머지는 무시 
 *.tar.gz
 *.zip
 *.7z
