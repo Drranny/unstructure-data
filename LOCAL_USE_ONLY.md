@@ -137,5 +137,4 @@ pip install --upgrade -r requirements.txt
 - ✅ 파일만 업로드하면 바로 사용 가능
 - ✅ 본인 컴퓨터에서만 실행
 
-**이게 전부입니다!** 🎉
 

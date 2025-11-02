@@ -138,7 +138,7 @@ def _get_report_styles():
     
     return title_style, heading_style, normal_style
 
-def generate_text_report_pdf(text_scores: dict, total_score: float, grade: str, file_name: str = None) -> BytesIO:
+def generate_text_report_pdf(text_scores: dict, total_score: float, grade: str, file_name: str = None, dataset_name: str = None) -> BytesIO:
     """
     텍스트 품질 분석 결과를 PDF 보고서로 생성합니다.
     
@@ -147,6 +147,7 @@ def generate_text_report_pdf(text_scores: dict, total_score: float, grade: str, 
         total_score: 종합 품질 점수
         grade: 품질 등급
         file_name: 파일명 (없으면 현재 시간 사용)
+        dataset_name: 데이터셋 또는 파일 이름
         
     Returns:
         BytesIO: PDF 파일 바이너리 스트림
@@ -163,9 +164,11 @@ def generate_text_report_pdf(text_scores: dict, total_score: float, grade: str, 
     story.append(Paragraph("텍스트 데이터 품질 분석 결과", heading_style))
     story.append(Spacer(1, 20))
     
-    # 생성 날짜
+    # 생성 날짜 및 데이터셋 정보
     current_time = datetime.now().strftime("%Y년 %m월 %d일 %H:%M:%S")
     story.append(Paragraph(f"<b>분석 일시:</b> {current_time}", normal_style))
+    if dataset_name:
+        story.append(Paragraph(f"<b>데이터셋/파일명:</b> {dataset_name}", normal_style))
     story.append(Spacer(1, 20))
     
     # 종합 점수 및 등급
@@ -264,7 +267,7 @@ def generate_text_report_pdf(text_scores: dict, total_score: float, grade: str, 
     buffer.seek(0)
     return buffer
 
-def generate_image_report_pdf(image_scores: dict, total_score: float, grade: str, file_name: str = None) -> BytesIO:
+def generate_image_report_pdf(image_scores: dict, total_score: float, grade: str, file_name: str = None, dataset_name: str = None) -> BytesIO:
     """
     이미지 품질 분석 결과를 PDF 보고서로 생성합니다.
     
@@ -273,6 +276,7 @@ def generate_image_report_pdf(image_scores: dict, total_score: float, grade: str
         total_score: 종합 품질 점수
         grade: 품질 등급
         file_name: 파일명 (없으면 현재 시간 사용)
+        dataset_name: 데이터셋 또는 파일 이름
         
     Returns:
         BytesIO: PDF 파일 바이너리 스트림
@@ -289,9 +293,11 @@ def generate_image_report_pdf(image_scores: dict, total_score: float, grade: str
     story.append(Paragraph("이미지 데이터 품질 분석 결과", heading_style))
     story.append(Spacer(1, 20))
     
-    # 생성 날짜
+    # 생성 날짜 및 데이터셋 정보
     current_time = datetime.now().strftime("%Y년 %m월 %d일 %H:%M:%S")
     story.append(Paragraph(f"<b>분석 일시:</b> {current_time}", normal_style))
+    if dataset_name:
+        story.append(Paragraph(f"<b>데이터셋/파일명:</b> {dataset_name}", normal_style))
     story.append(Spacer(1, 20))
     
     # 종합 점수 및 등급

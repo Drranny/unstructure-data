@@ -237,7 +237,8 @@ with tab1:
                 
                 # PDF 다운로드 버튼
                 st.divider()
-                pdf_buffer = generate_text_report_pdf(text_scores, total, grade)
+                dataset_name = uploaded_file.name if uploaded_file else None
+                pdf_buffer = generate_text_report_pdf(text_scores, total, grade, dataset_name=dataset_name)
                 filename = f"text_quality_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
                 st.download_button(
                     label="📄 PDF 보고서 다운로드",
@@ -320,7 +321,8 @@ with tab1:
                     
                     # PDF 다운로드 버튼
                     st.divider()
-                    pdf_buffer = generate_image_report_pdf(image_scores, total, grade)
+                    dataset_name = uploaded_file.name if uploaded_file else None
+                    pdf_buffer = generate_image_report_pdf(image_scores, total, grade, dataset_name=dataset_name)
                     filename = f"image_quality_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
                     st.download_button(
                         label="📄 PDF 보고서 다운로드",
@@ -388,7 +390,8 @@ with tab1:
             
             # PDF 다운로드 버튼
             st.divider()
-            pdf_buffer = generate_text_report_pdf(text_scores, total, grade)
+            dataset_name = st.session_state.get('last_text_analysis', {}).get('file_name', None)
+            pdf_buffer = generate_text_report_pdf(text_scores, total, grade, dataset_name=dataset_name)
             filename = f"text_quality_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
             st.download_button(
                 label="📄 PDF 보고서 다운로드",
@@ -531,6 +534,11 @@ with tab2:
                             )
                             if selected_id:
                                 st.session_state['selected_img_dataset'] = selected_id
+                        else:
+                            if search_query:
+                                st.warning(f"'{search_query}'에 대한 검색 결과가 없습니다. 다른 검색어를 시도해보세요.")
+                            else:
+                                st.info("인기 데이터셋 목록을 불러올 수 없습니다.")
                     except Exception as e:
                         st.error(f"검색 실패: {e}")
         else:  # 텍스트
@@ -601,6 +609,11 @@ with tab2:
                             )
                             if selected_id:
                                 st.session_state['selected_text_dataset'] = selected_id
+                        else:
+                            if search_query:
+                                st.warning(f"'{search_query}'에 대한 검색 결과가 없습니다. 다른 검색어를 시도해보세요.")
+                            else:
+                                st.info("인기 데이터셋 목록을 불러올 수 없습니다.")
                     except Exception as e:
                         st.error(f"검색 실패: {e}")
         
