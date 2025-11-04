@@ -23,7 +23,6 @@ def _register_korean_fonts():
         bold_ttf = os.path.join(os.path.dirname(__file__), '..', 'fonts', 'NotoSansKR-Bold.ttf')
         pdfmetrics.registerFont(TTFont('NotoSansCJK', regular_ttf))
         pdfmetrics.registerFont(TTFont('NotoSansCJK-Bold', bold_ttf))
-        print("한글 폰트 등록 성공")
         return True
     except Exception as e:
         print(f"한글 폰트 등록 실패: {e}")
