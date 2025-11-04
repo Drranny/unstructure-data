@@ -51,6 +51,9 @@ def analyze_dataset_images(images: List[Image.Image], max_samples: int = 100) ->
     # 실제 해상도 정보 저장 (width x height)
     actual_resolutions = []  # (width, height) 튜플 리스트
     
+    # 개별 이미지 점수 저장
+    individual_scores = []  # 각 이미지의 개별 점수 리스트
+    
     image_hashes = []
     
     # 각 이미지 분석
@@ -63,6 +66,15 @@ def analyze_dataset_images(images: List[Image.Image], max_samples: int = 100) ->
         all_scores["노이즈"].append(scores["노이즈"])
         all_scores["중복도"].append(scores["중복도"])
         all_scores["종합점수"].append(total)
+        
+        # 개별 점수 저장
+        individual_scores.append({
+            "해상도": round(scores["해상도"], 3),
+            "선명도": round(scores["선명도"], 3),
+            "노이즈": round(scores["노이즈"], 3),
+            "중복도": round(scores["중복도"], 3),
+            "종합점수": round(total, 3),
+        })
         
         # 실제 해상도 저장 (width x height)
         actual_resolutions.append((img.width, img.height))
@@ -103,6 +115,7 @@ def analyze_dataset_images(images: List[Image.Image], max_samples: int = 100) ->
             "평균 픽셀 수": f"{int(np.mean(total_pixels)):,}",
         },
         "해상도 목록": [f"{w}x{h}" for w, h in actual_resolutions],  # 선택된 이미지들의 실제 해상도
+        "개별 점수": individual_scores,  # 각 이미지의 개별 점수 리스트
     }
     
     return result
@@ -139,6 +152,9 @@ def analyze_dataset_texts(texts: List[str], max_samples: int = 100) -> Dict:
         "종합점수": []
     }
     
+    # 개별 텍스트 점수 저장
+    individual_scores = []  # 각 텍스트의 개별 점수 리스트
+    
     # 각 텍스트 분석
     for text in texts:
         if not text or len(text.strip()) == 0:
@@ -147,10 +163,22 @@ def analyze_dataset_texts(texts: List[str], max_samples: int = 100) -> Dict:
         scores = analyze_text_quality(text)
         total = calc_total_score(scores)
         
-        all_scores["정확성"].append(scores["정확성(오탈자비율)"])
-        all_scores["중복도"].append(scores["중복도(유사도역비율)"])
-        all_scores["완전성"].append(scores["완전성(문장충실도)"])
+        accuracy = scores["정확성(오탈자비율)"]
+        duplication = scores["중복도(유사도역비율)"]
+        completeness = scores["완전성(문장충실도)"]
+        
+        all_scores["정확성"].append(accuracy)
+        all_scores["중복도"].append(duplication)
+        all_scores["완전성"].append(completeness)
         all_scores["종합점수"].append(total)
+        
+        # 개별 점수 저장
+        individual_scores.append({
+            "정확성": round(accuracy, 3),
+            "중복도": round(duplication, 3),
+            "완전성": round(completeness, 3),
+            "종합점수": round(total, 3),
+        })
     
     if len(all_scores["종합점수"]) == 0:
         return {
@@ -171,6 +199,7 @@ def analyze_dataset_texts(texts: List[str], max_samples: int = 100) -> Dict:
         "최소 종합 점수": round(np.min(all_scores["종합점수"]), 3),
         "최대 종합 점수": round(np.max(all_scores["종합점수"]), 3),
         "표준편차": round(np.std(all_scores["종합점수"]), 3),
+        "개별 점수": individual_scores,  # 각 텍스트의 개별 점수 리스트
     }
     
     return result
