@@ -15,4 +15,5 @@ pyenchant>=3.2.0
 py-hanspell>=1.1
 # 참고: pyenchant는 시스템 패키지(enchant)도 필요할 수 있습니다.
 # Ubuntu/Debian: sudo apt-get install enchant
+# 위 명령어 실행 실패할 경우 sudo apt-get install libenchant-2-dev python3-enchant 로 시도 
 

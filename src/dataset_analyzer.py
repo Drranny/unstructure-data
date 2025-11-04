@@ -59,7 +59,7 @@ def analyze_dataset_images(images: List[Image.Image], max_samples: int = 100) ->
     # 각 이미지 분석
     for img in images:
         scores = analyze_image_quality(img)
-        total = calc_total_score(scores)
+        total = (scores["해상도"] + scores["선명도"] + (1 - scores["노이즈"]) + (1 - scores["중복도"])) / 4
         
         all_scores["해상도"].append(scores["해상도"])
         all_scores["선명도"].append(scores["선명도"])
@@ -84,10 +84,16 @@ def analyze_dataset_images(images: List[Image.Image], max_samples: int = 100) ->
     
     # 중복도 재계산 (전체 이미지 간)
     if len(image_hashes) > 1:
-        duplication = calculate_duplication_score(image_hashes)
-        # 중복도 점수 업데이트
-        all_scores["중복도"] = [duplication] * len(all_scores["중복도"])
-    
+        avg_dup = calculate_duplication_score(image_hashes)
+    else:
+        avg_dup = np.mean(all_scores["중복도"])
+        
+    # 종합 점수 재계산: 개별 평균을 기반으로 계산
+    avg_resolution = np.mean(all_scores["해상도"])
+    avg_sharpness  = np.mean(all_scores["선명도"])
+    avg_noise      = np.mean(all_scores["노이즈"])
+    avg_total      = (avg_resolution + avg_sharpness + (1 - avg_noise) + (1 - avg_dup)) / 4  # ✅ 수정
+
     # 해상도 통계 계산
     widths = [r[0] for r in actual_resolutions]
     heights = [r[1] for r in actual_resolutions]
@@ -98,11 +104,11 @@ def analyze_dataset_images(images: List[Image.Image], max_samples: int = 100) ->
         "총 이미지 수": len(images),
         "원본 데이터셋 크기": original_count if original_count > len(images) else len(images),
         "샘플링 여부": "예" if original_count > len(images) else "아니오",
-        "평균 해상도": round(np.mean(all_scores["해상도"]), 3),
-        "평균 선명도": round(np.mean(all_scores["선명도"]), 3),
-        "평균 노이즈": round(np.mean(all_scores["노이즈"]), 3),
-        "평균 중복도": round(np.mean(all_scores["중복도"]), 3),
-        "평균 종합 점수": round(np.mean(all_scores["종합점수"]), 3),
+        "평균 해상도": round(avg_resolution, 3),
+        "평균 선명도": round(avg_sharpness, 3),
+        "평균 노이즈": round(avg_noise, 3),
+        "평균 중복도": round(avg_dup, 3),
+        "평균 종합 점수": round(avg_total, 3),
         "최소 종합 점수": round(np.min(all_scores["종합점수"]), 3),
         "최대 종합 점수": round(np.max(all_scores["종합점수"]), 3),
         "표준편차": round(np.std(all_scores["종합점수"]), 3),
