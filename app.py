@@ -985,6 +985,32 @@ with tab2:
                                         else:
                                             st.caption(f"#{img_idx+1}")
                     
+                    # 개별 점수 표시 (토글)
+                    if "개별 점수" in results and len(results["개별 점수"]) > 0:
+                        with st.expander("개별 이미지 점수 상세 보기", expanded=False):
+                            import pandas as pd
+                            
+                            # 개별 점수 데이터프레임 생성
+                            df_scores = pd.DataFrame(results["개별 점수"])
+                            df_scores.index = df_scores.index + 1  # 인덱스를 1부터 시작
+                            df_scores.index.name = "이미지 번호"
+                            
+                            # 정렬 옵션 추가
+                            col_sort1, col_sort2 = st.columns(2)
+                            with col_sort1:
+                                sort_by = st.selectbox("정렬 기준", ["종합점수", "해상도", "선명도", "노이즈", "중복도"], key="img_sort")
+                            with col_sort2:
+                                sort_order = st.selectbox("정렬 방향", ["내림차순", "오름차순"], key="img_order")
+                            
+                            ascending = (sort_order == "오름차순")
+                            df_scores_sorted = df_scores.sort_values(by=sort_by, ascending=ascending)
+                            
+                            # 데이터프레임 표시
+                            st.dataframe(df_scores_sorted, use_container_width=True)
+                            
+                            # 통계 요약
+                            st.caption(f"총 {len(df_scores)}개 이미지 | 평균 종합점수: {results['평균 종합 점수']:.3f} | 최소: {results['최소 종합 점수']:.3f} | 최대: {results['최대 종합 점수']:.3f}")
+                    
                     # PDF 다운로드 버튼
                     st.divider()
                     pdf_buffer = generate_dataset_report_pdf(results, "이미지", dataset_option)
@@ -1037,7 +1063,7 @@ with tab2:
                         else:
                             st.error("품질 개선이 시급합니다.")
                     
-                    # 상세 지표 시각화
+                    # 상세 지표 시각화 (메인)
                     st.subheader("품질 지표 상세")
                     
                     metrics_data = {
@@ -1048,12 +1074,44 @@ with tab2:
                     
                     st.bar_chart(metrics_data)
                     
-                    # 샘플 텍스트 미리보기
+                    # 개별 점수 표시 (토글)
+                    if "개별 점수" in results and len(results["개별 점수"]) > 0:
+                        with st.expander("개별 텍스트 점수 상세 보기", expanded=False):
+                            import pandas as pd
+                            
+                            # 개별 점수 데이터프레임 생성
+                            df_scores = pd.DataFrame(results["개별 점수"])
+                            df_scores.index = df_scores.index + 1  # 인덱스를 1부터 시작
+                            df_scores.index.name = "텍스트 번호"
+                            
+                            # 정렬 옵션 추가
+                            col_sort1, col_sort2 = st.columns(2)
+                            with col_sort1:
+                                sort_by = st.selectbox("정렬 기준", ["종합점수", "정확성", "중복도", "완전성"], key="text_sort")
+                            with col_sort2:
+                                sort_order = st.selectbox("정렬 방향", ["내림차순", "오름차순"], key="text_order")
+                            
+                            ascending = (sort_order == "오름차순")
+                            df_scores_sorted = df_scores.sort_values(by=sort_by, ascending=ascending)
+                            
+                            # 데이터프레임 표시
+                            st.dataframe(df_scores_sorted, use_container_width=True)
+                            
+                            # 통계 요약
+                            st.caption(f"총 {len(df_scores)}개 텍스트 | 평균 종합점수: {results['평균 종합 점수']:.3f} | 최소: {results['최소 종합 점수']:.3f} | 최대: {results['최대 종합 점수']:.3f}")
+                    
+                    # 선택된 텍스트 전체 표시 (토글)
                     if len(texts) > 0:
-                        st.subheader("샘플 텍스트 (처음 3개)")
-                        for i, text in enumerate(texts[:3]):
-                            with st.expander(f"텍스트 {i+1} (길이: {len(text)}자)"):
-                                st.text(text[:500] + "..." if len(text) > 500 else text)
+                        with st.expander(f"선택된 텍스트 전체 보기 ({len(texts)}개)", expanded=False):
+                            for i, text in enumerate(texts):
+                                # 개별 점수 정보 가져오기
+                                score_info = ""
+                                if "개별 점수" in results and i < len(results["개별 점수"]):
+                                    score = results["개별 점수"][i]
+                                    score_info = f" | 정확성: {score.get('정확성', 0):.3f}, 중복도: {score.get('중복도', 0):.3f}, 완전성: {score.get('완전성', 0):.3f}, 종합: {score.get('종합점수', 0):.3f}"
+                                
+                                with st.expander(f"텍스트 #{i+1} (길이: {len(text)}자{score_info})", expanded=False):
+                                    st.text(text[:1000] + "..." if len(text) > 1000 else text)
                     
                     # PDF 다운로드 버튼
                     st.divider()
