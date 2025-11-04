@@ -935,14 +935,55 @@ with tab2:
                     
                     st.bar_chart(metrics_data)
                     
-                    # 샘플 이미지 미리보기
+                    # 해상도 분포 정보 표시
+                    if "해상도 분포" in results:
+                        st.subheader("선택된 이미지 해상도 정보")
+                        resolution_info = results["해상도 분포"]
+                        col1, col2, col3, col4 = st.columns(4)
+                        with col1:
+                            st.metric("최소 해상도", resolution_info["최소"])
+                        with col2:
+                            st.metric("최대 해상도", resolution_info["최대"])
+                        with col3:
+                            st.metric("평균 해상도", resolution_info["평균"])
+                        with col4:
+                            st.metric("중앙값 해상도", resolution_info["중앙값"])
+                        
+                        st.info(f"평균 픽셀 수: {resolution_info['평균 픽셀 수']} 픽셀")
+                        
+                        # 해상도 목록 표시 (확장 가능)
+                        with st.expander("선택된 이미지들의 실제 해상도 목록 (전체 보기)"):
+                            if "해상도 목록" in results:
+                                # 해상도별 그룹화하여 표시
+                                from collections import Counter
+                                resolution_counts = Counter(results["해상도 목록"])
+                                st.write("**해상도별 개수:**")
+                                for res, count in sorted(resolution_counts.items(), key=lambda x: x[1], reverse=True):
+                                    st.write(f"- {res}: {count}개")
+                            
+                            # 전체 목록도 표시
+                            st.write(f"\n**전체 {len(results.get('해상도 목록', []))}개 이미지 해상도:**")
+                            st.text(", ".join(results.get("해상도 목록", [])))
+                    
+                    # 샘플 이미지 미리보기 (전체 표시)
                     if len(images) > 0:
-                        st.subheader("샘플 이미지 (처음 5개)")
-                        cols = st.columns(5)
-                        for i, img in enumerate(images[:5]):
-                            with cols[i]:
-                                st.image(img, use_container_width=True)
-                                st.caption(f"이미지 {i+1}")
+                        st.subheader(f"선택된 이미지 전체 ({len(images)}개)")
+                        
+                        # 5열 그리드로 표시
+                        num_cols = 5
+                        num_rows = (len(images) + num_cols - 1) // num_cols  # 올림 계산
+                        
+                        for row in range(num_rows):
+                            cols = st.columns(num_cols)
+                            for col_idx in range(num_cols):
+                                img_idx = row * num_cols + col_idx
+                                if img_idx < len(images):
+                                    with cols[col_idx]:
+                                        st.image(images[img_idx], use_container_width=True)
+                                        if "해상도 목록" in results and img_idx < len(results["해상도 목록"]):
+                                            st.caption(f"#{img_idx+1} ({results['해상도 목록'][img_idx]})")
+                                        else:
+                                            st.caption(f"#{img_idx+1}")
                     
                     # PDF 다운로드 버튼
                     st.divider()

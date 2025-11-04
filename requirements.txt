@@ -11,4 +11,8 @@ huggingface_hub>=0.20.0
 imagehash>=4.3.1
 scikit-learn>=1.3.0
 reportlab>=4.0.0
+pyenchant>=3.2.0
+py-hanspell>=1.1
+# 참고: pyenchant는 시스템 패키지(enchant)도 필요할 수 있습니다.
+# Ubuntu/Debian: sudo apt-get install enchant
 

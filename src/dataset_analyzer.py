@@ -33,6 +33,9 @@ def analyze_dataset_images(images: List[Image.Image], max_samples: int = 100) ->
         }
     
     # 샘플링 (너무 많으면 일부만)
+    # 참고: random.sample을 사용하여 무작위로 선택하므로,
+    # 해상도가 다른 이미지들이 골고루 선택될 수 있습니다.
+    original_count = len(images)
     if len(images) > max_samples:
         import random
         images = random.sample(images, max_samples)
@@ -44,6 +47,9 @@ def analyze_dataset_images(images: List[Image.Image], max_samples: int = 100) ->
         "중복도": [],
         "종합점수": []
     }
+    
+    # 실제 해상도 정보 저장 (width x height)
+    actual_resolutions = []  # (width, height) 튜플 리스트
     
     image_hashes = []
     
@@ -58,6 +64,9 @@ def analyze_dataset_images(images: List[Image.Image], max_samples: int = 100) ->
         all_scores["중복도"].append(scores["중복도"])
         all_scores["종합점수"].append(total)
         
+        # 실제 해상도 저장 (width x height)
+        actual_resolutions.append((img.width, img.height))
+        
         # 중복도 계산을 위한 해시 저장
         image_hashes.append(imagehash.average_hash(img))
     
@@ -67,9 +76,16 @@ def analyze_dataset_images(images: List[Image.Image], max_samples: int = 100) ->
         # 중복도 점수 업데이트
         all_scores["중복도"] = [duplication] * len(all_scores["중복도"])
     
+    # 해상도 통계 계산
+    widths = [r[0] for r in actual_resolutions]
+    heights = [r[1] for r in actual_resolutions]
+    total_pixels = [w * h for w, h in actual_resolutions]
+    
     # 통계 계산
     result = {
         "총 이미지 수": len(images),
+        "원본 데이터셋 크기": original_count if original_count > len(images) else len(images),
+        "샘플링 여부": "예" if original_count > len(images) else "아니오",
         "평균 해상도": round(np.mean(all_scores["해상도"]), 3),
         "평균 선명도": round(np.mean(all_scores["선명도"]), 3),
         "평균 노이즈": round(np.mean(all_scores["노이즈"]), 3),
@@ -78,6 +94,15 @@ def analyze_dataset_images(images: List[Image.Image], max_samples: int = 100) ->
         "최소 종합 점수": round(np.min(all_scores["종합점수"]), 3),
         "최대 종합 점수": round(np.max(all_scores["종합점수"]), 3),
         "표준편차": round(np.std(all_scores["종합점수"]), 3),
+        # 실제 해상도 정보 추가
+        "해상도 분포": {
+            "최소": f"{min(widths)}x{min(heights)}",
+            "최대": f"{max(widths)}x{max(heights)}",
+            "평균": f"{int(np.mean(widths))}x{int(np.mean(heights))}",
+            "중앙값": f"{int(np.median(widths))}x{int(np.median(heights))}",
+            "평균 픽셀 수": f"{int(np.mean(total_pixels)):,}",
+        },
+        "해상도 목록": [f"{w}x{h}" for w, h in actual_resolutions],  # 선택된 이미지들의 실제 해상도
     }
     
     return result

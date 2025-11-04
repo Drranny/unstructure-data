@@ -1,0 +1,26 @@
+feat: 텍스트 품질 분석 개선 및 이미지 분석 기능 강화
+
+주요 변경사항:
+
+1. 텍스트 품질 분석 개선 (src/text_quality.py)
+   - 오탈자 비율 계산 방식 개선: 패널티 계산 로직 변경으로 과도한 감점 방지
+   - 소규모 오류 완화: 오류 3개 이하 및 비율 5% 미만 시 패널티 50% 감소
+   - 맥락 단절 검사 추가: SentenceTransformer 기반 문장 간 유사도로 주제 변화 감지
+   - 결과: 오탈자가 거의 없는 텍스트의 오탈자 비율 42.4% → 3.8%로 개선
+
+2. 이미지 데이터셋 분석 기능 강화 (src/dataset_analyzer.py, app.py)
+   - 해상도 정보 표시: 선택된 이미지들의 실제 해상도(width x height) 통계 추가
+     * 최소/최대/평균/중앙값 해상도
+     * 해상도별 개수 분포
+     * 전체 해상도 목록
+   - 전체 이미지 표시: 선택한 모든 이미지를 5열 그리드로 표시 (이전: 5개만)
+   - 샘플링 정보 추가: 원본 데이터셋 크기 및 샘플링 여부 표시
+
+3. 문서 정리 (TEXT_QUALITY_TODO.md)
+   - MISSING_QUALITY_CHECKS.md, TEXT_QUALITY_ISSUES.md 통합 및 정리
+   - 미구현 항목만 간결하게 정리 (OCR 오류 감지, 고급 문법 검사)
+
+4. 기타
+   - requirements.txt 업데이트 (pyenchant, py-hanspell)
+   - ALGORITHM_DESCRIPTION.md 업데이트
+
