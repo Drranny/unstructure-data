@@ -447,13 +447,16 @@ def generate_dataset_report_pdf(results: dict, data_type: str, dataset_name: str
     # 상세 지표
     story.append(Paragraph("상세 품질 지표", heading_style))
     
-    # 필터링: 종합 점수는 제외
-    metrics_to_show = {k: v for k, v in results.items() if k != "평균 종합 점수"}
+    # 필터링: 종합 점수와 개별 점수는 제외
+    metrics_to_show = {k: v for k, v in results.items() if k not in ["평균 종합 점수", "개별 점수"]}
     
     metrics_data = [['지표', '평균값']]
     for key, value in metrics_to_show.items():
         if isinstance(value, (int, float)):
             metrics_data.append([key, f"{value:.3f}"])
+        elif isinstance(value, dict):
+            # 딕셔너리는 문자열로 변환
+            metrics_data.append([key, str(value)])
         else:
             metrics_data.append([key, str(value)])
     
@@ -498,6 +501,73 @@ def generate_dataset_report_pdf(results: dict, data_type: str, dataset_name: str
     
     story.append(grade_table)
     story.append(Spacer(1, 30))
+    
+    # 개별 점수 표시 (있는 경우)
+    if "개별 점수" in results and len(results["개별 점수"]) > 0:
+        story.append(PageBreak())  # 새 페이지 시작
+        story.append(Paragraph(f"개별 {data_type} 점수 상세", heading_style))
+        story.append(Spacer(1, 20))
+        
+        individual_scores = results["개별 점수"]
+        
+        # 데이터 타입에 따라 컬럼명 결정
+        if data_type == "이미지":
+            headers = ['번호', '해상도', '선명도', '노이즈', '중복도', '종합점수']
+            col_widths = [0.5*inch, 1*inch, 1*inch, 1*inch, 1*inch, 1*inch]
+        else:  # 텍스트
+            headers = ['번호', '정확성', '중복도', '완전성', '종합점수']
+            col_widths = [0.5*inch, 1.2*inch, 1.2*inch, 1.2*inch, 1*inch]
+        
+        # 개별 점수 테이블 생성
+        individual_data = [headers]
+        
+        # 최대 100개까지만 표시 (PDF 용량 고려)
+        max_items = min(len(individual_scores), 100)
+        for idx, score in enumerate(individual_scores[:max_items]):
+            row = [str(idx + 1)]
+            if data_type == "이미지":
+                row.extend([
+                    f"{score.get('해상도', 0):.3f}",
+                    f"{score.get('선명도', 0):.3f}",
+                    f"{score.get('노이즈', 0):.3f}",
+                    f"{score.get('중복도', 0):.3f}",
+                    f"{score.get('종합점수', 0):.3f}"
+                ])
+            else:  # 텍스트
+                row.extend([
+                    f"{score.get('정확성', 0):.3f}",
+                    f"{score.get('중복도', 0):.3f}",
+                    f"{score.get('완전성', 0):.3f}",
+                    f"{score.get('종합점수', 0):.3f}"
+                ])
+            individual_data.append(row)
+        
+        # 개별 점수 테이블 생성
+        individual_table = Table(individual_data, colWidths=col_widths)
+        individual_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#4472c4')),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ('FONTNAME', (0, 0), (-1, 0), 'NotoSansCJK' if _hangul_font_registered else 'Helvetica-Bold'),
+            ('FONTNAME', (0, 1), (-1, -1), 'NotoSansCJK' if _hangul_font_registered else 'Helvetica'),
+            ('FONTSIZE', (0, 0), (-1, 0), 10),
+            ('FONTSIZE', (0, 1), (-1, -1), 9),
+            ('GRID', (0, 0), (-1, -1), 1, colors.grey),
+            ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor('#f5f8fb')]),
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        ]))
+        
+        story.append(individual_table)
+        
+        # 개수 제한 안내
+        if len(individual_scores) > max_items:
+            story.append(Spacer(1, 10))
+            story.append(Paragraph(
+                f"<i>※ 총 {len(individual_scores)}개 중 상위 {max_items}개만 표시됩니다.</i>",
+                ParagraphStyle('Note', parent=normal_style, fontSize=9, textColor=colors.grey)
+            ))
+        
+        story.append(Spacer(1, 30))
     
     # 하단 정보
     story.append(Spacer(1, 20))
