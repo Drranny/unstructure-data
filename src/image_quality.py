@@ -178,6 +178,8 @@ def calculate_duplication_score(image_hashes: list) -> float:
     여러 이미지 간 중복도를 계산합니다.
     이미지 해시를 비교하여 중복 비율을 계산합니다.
     
+    TID2013 같은 화질 변형 이미지도 감지할 수 있도록 임계값을 완화했습니다.
+    
     Args:
         image_hashes: ImageHash 객체 리스트
         
@@ -190,17 +192,37 @@ def calculate_duplication_score(image_hashes: list) -> float:
     duplicate_count = 0
     total_comparisons = 0
     
+    # 화질 변형 이미지도 감지하기 위해 임계값을 완화 (TID2013 같은 케이스 대응)
+    # average_hash는 해상도/화질 변화에 민감하므로 더 큰 임계값 사용
+    max_threshold = 25  # 화질 변형 이미지도 감지할 수 있도록 완화
+    
     for i in range(len(image_hashes)):
         for j in range(i + 1, len(image_hashes)):
             total_comparisons += 1
             # 해시 차이 계산 (차이가 적으면 유사한 이미지)
             hash_diff = image_hashes[i] - image_hashes[j]
-            if hash_diff <= 5:  # 임계값 설정
-                duplicate_count += 1
+            
+            # 화질 변형 이미지도 감지하기 위해 가중치 적용
+            # hash_diff가 작을수록 더 확실한 중복
+            if hash_diff <= max_threshold:
+                # hash_diff가 5 이하면 완전 중복, 25 이하면 화질 변형 중복
+                if hash_diff <= 5:
+                    duplicate_count += 1.0  # 완전 중복
+                elif hash_diff <= 10:
+                    duplicate_count += 0.95  # 거의 완전 중복
+                elif hash_diff <= 15:
+                    duplicate_count += 0.85  # 거의 중복
+                elif hash_diff <= 20:
+                    duplicate_count += 0.75  # 화질 변형 중복 (TID2013 같은 경우)
+                else:  # hash_diff <= 25
+                    duplicate_count += 0.6  # 약한 중복 (화질만 다른 같은 이미지)
     
     if total_comparisons == 0:
         return 1.0
     
+    # 중복 비율 계산 (가중치 반영)
     duplicate_ratio = duplicate_count / total_comparisons
+    
+    # 중복도가 높을수록 점수는 낮아야 함 (0.0 = 모두 중복)
     return max(1.0 - duplicate_ratio, 0.0)
 

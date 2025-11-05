@@ -79,7 +79,7 @@ def analyze_dataset_images(images: List[Image.Image], max_samples: int = 100) ->
         # 실제 해상도 저장 (width x height)
         actual_resolutions.append((img.width, img.height))
         
-        # 중복도 계산을 위한 해시 저장
+        # 중복도 계산을 위한 해시 저장 (average_hash 사용)
         image_hashes.append(imagehash.average_hash(img))
     
     # 중복도 재계산 (전체 이미지 간)
@@ -416,7 +416,8 @@ def load_huggingface_dataset(dataset_name: str, num_samples: int = 100, split: s
     Hugging Face Datasets에서 이미지 데이터셋을 로드합니다.
     
     Args:
-        dataset_name: Hugging Face 데이터셋 이름 (예: "beans", "food101")
+        dataset_name: Hugging Face 데이터셋 이름 (예: "beans", "food101", "dataset:config")
+                     ':' 구분자로 config를 지정할 수 있습니다
         num_samples: 로드할 샘플 개수 (download_percentage가 None일 때 사용)
         split: 데이터셋 split (예: "train", "test", "train[:100]")
         image_column: 이미지 컬럼 이름 (None이면 자동 감지)
@@ -427,7 +428,15 @@ def load_huggingface_dataset(dataset_name: str, num_samples: int = 100, split: s
         List[PIL.Image]: 이미지 리스트
     """
     try:
-        from datasets import load_dataset
+        from datasets import load_dataset, get_dataset_config_names
+        
+        # 데이터셋 이름에서 config 추출 (dataset_name:config 형식 지원)
+        config_name = None
+        base_dataset_name = dataset_name
+        if ':' in dataset_name:
+            parts = dataset_name.split(':', 1)
+            base_dataset_name = parts[0]
+            config_name = parts[1]
         
         # 퍼센티지 기반 다운로드
         if download_percentage is not None:
@@ -448,45 +457,96 @@ def load_huggingface_dataset(dataset_name: str, num_samples: int = 100, split: s
             actual_split = split
             num_samples_to_use = num_samples
         
-        # 데이터셋 로드
-        try:
+        # 데이터셋 로드 (config가 필요한 경우 자동 처리)
+        def try_load_dataset(dataset_name_to_use, config_to_use=None):
+            """데이터셋 로드를 시도하는 헬퍼 함수"""
             if download_full:
                 # 전체 다운로드: split 그대로 사용 (슬라이싱 없음)
-                dataset = load_dataset(dataset_name, split=split, trust_remote_code=True)
+                try:
+                    if config_to_use:
+                        return load_dataset(dataset_name_to_use, name=config_to_use, split=split, trust_remote_code=True)
+                    else:
+                        return load_dataset(dataset_name_to_use, split=split, trust_remote_code=True)
+                except Exception:
+                    if config_to_use:
+                        return load_dataset(dataset_name_to_use, name=config_to_use, split=split)
+                    else:
+                        return load_dataset(dataset_name_to_use, split=split)
             else:
                 # 일부만 다운로드: streaming 모드 사용 (전체 다운로드 안 함)
                 try:
                     # Streaming 모드로 시도 (전체 다운로드 안 함, 필요한 부분만)
-                    dataset = load_dataset(
-                        dataset_name, 
-                        split=actual_split, 
-                        trust_remote_code=True,
-                        streaming=True  # 필요한 부분만 스트리밍, 전체 다운로드 안 함
-                    )
+                    if config_to_use:
+                        return load_dataset(
+                            dataset_name_to_use, 
+                            name=config_to_use,
+                            split=actual_split, 
+                            trust_remote_code=True,
+                            streaming=True
+                        )
+                    else:
+                        return load_dataset(
+                            dataset_name_to_use, 
+                            split=actual_split, 
+                            trust_remote_code=True,
+                            streaming=True
+                        )
                 except Exception:
                     # streaming 실패 시 일반 모드로 재시도 (캐시된 데이터 사용)
                     try:
-                        dataset = load_dataset(
-                            dataset_name, 
-                            split=actual_split, 
-                            trust_remote_code=True,
-                            streaming=False
-                        )
+                        if config_to_use:
+                            return load_dataset(
+                                dataset_name_to_use, 
+                                name=config_to_use,
+                                split=actual_split, 
+                                trust_remote_code=True,
+                                streaming=False
+                            )
+                        else:
+                            return load_dataset(
+                                dataset_name_to_use, 
+                                split=actual_split, 
+                                trust_remote_code=True,
+                                streaming=False
+                            )
                     except Exception:
-                        dataset = load_dataset(
-                            dataset_name, 
-                            split=actual_split, 
-                            trust_remote_code=True
-                        )
+                        if config_to_use:
+                            return load_dataset(
+                                dataset_name_to_use, 
+                                name=config_to_use,
+                                split=actual_split, 
+                                trust_remote_code=True
+                            )
+                        else:
+                            return load_dataset(
+                                dataset_name_to_use, 
+                                split=actual_split, 
+                                trust_remote_code=True
+                            )
+        
+        # 데이터셋 로드 시도
+        try:
+            dataset = try_load_dataset(base_dataset_name, config_name)
         except Exception as e:
-            # trust_remote_code 오류 시 재시도
-            try:
-                if download_full:
-                    dataset = load_dataset(dataset_name, split=split)
-                else:
-                    dataset = load_dataset(dataset_name, split=actual_split)
-            except Exception:
-                raise Exception(f"데이터셋 로드 실패: {dataset_name}\n에러: {e}")
+            error_msg = str(e)
+            # Config 관련 에러인지 확인
+            if "Config name is missing" in error_msg or "pick one among the available configs" in error_msg:
+                # 사용 가능한 config 목록 가져오기
+                try:
+                    available_configs = get_dataset_config_names(base_dataset_name)
+                    if available_configs and len(available_configs) > 0:
+                        # 첫 번째 config 자동 사용
+                        auto_config = available_configs[0]
+                        print(f"⚠️ Config가 지정되지 않아 첫 번째 config '{auto_config}'를 자동으로 사용합니다.")
+                        print(f"   사용 가능한 configs: {', '.join(available_configs)}")
+                        print(f"   다른 config를 사용하려면 데이터셋 이름을 '{base_dataset_name}:{auto_config}' 형식으로 지정하세요.")
+                        dataset = try_load_dataset(base_dataset_name, auto_config)
+                    else:
+                        raise Exception(f"데이터셋 로드 실패: {base_dataset_name}\n에러: {e}")
+                except Exception as config_error:
+                    raise Exception(f"데이터셋 로드 실패: {base_dataset_name}\n에러: {e}\nConfig 조회 실패: {config_error}")
+            else:
+                raise Exception(f"데이터셋 로드 실패: {base_dataset_name}\n에러: {e}")
         
         # 이미지 컬럼 자동 감지
         if image_column is None:
@@ -502,13 +562,35 @@ def load_huggingface_dataset(dataset_name: str, num_samples: int = 100, split: s
             # 없으면 첫 번째 컬럼 확인
             if image_column is None:
                 for col in dataset.column_names:
-                    sample = dataset[0][col]
-                    if isinstance(sample, Image.Image) or hasattr(sample, 'mode'):
-                        image_column = col
-                        break
+                    try:
+                        sample = dataset[0][col]
+                        if isinstance(sample, Image.Image) or hasattr(sample, 'mode'):
+                            image_column = col
+                            break
+                    except Exception:
+                        continue
         
+        # 이미지 컬럼을 찾지 못한 경우
         if image_column is None:
-            raise ValueError(f"이미지 컬럼을 찾을 수 없습니다. 사용 가능한 컬럼: {dataset.column_names}")
+            # 텍스트 데이터셋인지 확인
+            text_indicators = ['text', 'sentence', 'premise', 'hypothesis', 'question', 'context', 'answer', 'review', 'content']
+            has_text_columns = any(col.lower() in text_indicators for col in dataset.column_names)
+            
+            if has_text_columns:
+                raise ValueError(
+                    f"이미지 데이터셋이 아닌 것으로 보입니다. 텍스트 데이터셋인 것 같습니다.\n"
+                    f"사용 가능한 컬럼: {dataset.column_names}\n\n"
+                    f"💡 해결 방법:\n"
+                    f"  1. 데이터 타입을 '텍스트'로 변경하거나\n"
+                    f"  2. 이미지 데이터셋을 선택하세요."
+                )
+            else:
+                raise ValueError(
+                    f"이미지 컬럼을 찾을 수 없습니다.\n"
+                    f"사용 가능한 컬럼: {dataset.column_names}\n\n"
+                    f"💡 이 데이터셋은 이미지 데이터셋이 아닐 수 있습니다.\n"
+                    f"   데이터 타입을 확인하거나 다른 데이터셋을 선택해보세요."
+                )
         
         images = []
         # 사용할 샘플 개수 결정
@@ -577,7 +659,8 @@ def load_huggingface_text_dataset(dataset_name: str, num_samples: int = 100, spl
     Hugging Face Datasets에서 텍스트 데이터셋을 로드합니다.
     
     Args:
-        dataset_name: Hugging Face 데이터셋 이름 (예: "imdb", "yelp_review_full")
+        dataset_name: Hugging Face 데이터셋 이름 (예: "imdb", "yelp_review_full", "nyu-mll/glue:sst2")
+                     ':' 구분자로 config를 지정할 수 있습니다 (예: "nyu-mll/glue:sst2")
         num_samples: 로드할 샘플 개수 (download_percentage가 None일 때 사용)
         split: 데이터셋 split (예: "train", "test")
         text_column: 텍스트 컬럼 이름 (None이면 자동 감지)
@@ -589,7 +672,15 @@ def load_huggingface_text_dataset(dataset_name: str, num_samples: int = 100, spl
     """
     # get_available_splits 함수는 이미 위에 정의되어 있음
     try:
-        from datasets import load_dataset
+        from datasets import load_dataset, get_dataset_config_names
+        
+        # 데이터셋 이름에서 config 추출 (dataset_name:config 형식 지원)
+        config_name = None
+        base_dataset_name = dataset_name
+        if ':' in dataset_name:
+            parts = dataset_name.split(':', 1)
+            base_dataset_name = parts[0]
+            config_name = parts[1]
         
         # 퍼센티지 기반 다운로드
         if download_percentage is not None:
@@ -605,35 +696,177 @@ def load_huggingface_text_dataset(dataset_name: str, num_samples: int = 100, spl
             actual_split = split
             num_samples_to_use = None
         
-        # 데이터셋 로드
-        try:
+        # 데이터셋 로드 (config가 필요한 경우 자동 처리)
+        def try_load_dataset(dataset_name_to_use, config_to_use=None, split_to_use=None):
+            """데이터셋 로드를 시도하는 헬퍼 함수"""
+            if split_to_use is None:
+                split_to_use = split if download_full else actual_split
+            
             if download_full:
                 # 전체 다운로드
-                dataset = load_dataset(dataset_name, split=split, trust_remote_code=True)
+                try:
+                    if config_to_use:
+                        return load_dataset(dataset_name_to_use, name=config_to_use, split=split_to_use, trust_remote_code=True)
+                    else:
+                        return load_dataset(dataset_name_to_use, split=split_to_use, trust_remote_code=True)
+                except Exception:
+                    if config_to_use:
+                        return load_dataset(dataset_name_to_use, name=config_to_use, split=split_to_use)
+                    else:
+                        return load_dataset(dataset_name_to_use, split=split_to_use)
             else:
                 # 일부만 다운로드: streaming 모드 사용
                 try:
-                    dataset = load_dataset(
-                        dataset_name, 
-                        split=actual_split, 
-                        trust_remote_code=True,
-                        streaming=True  # 필요한 부분만 스트리밍
-                    )
+                    if config_to_use:
+                        return load_dataset(
+                            dataset_name_to_use, 
+                            name=config_to_use,
+                            split=split_to_use, 
+                            trust_remote_code=True,
+                            streaming=True
+                        )
+                    else:
+                        return load_dataset(
+                            dataset_name_to_use, 
+                            split=split_to_use, 
+                            trust_remote_code=True,
+                            streaming=True
+                        )
                 except Exception:
                     # streaming 실패 시 일반 모드
-                    dataset = load_dataset(
-                        dataset_name, 
-                        split=actual_split, 
-                        trust_remote_code=True
-                    )
-        except Exception as e:
+                    if config_to_use:
+                        return load_dataset(
+                            dataset_name_to_use, 
+                            name=config_to_use,
+                            split=split_to_use, 
+                            trust_remote_code=True
+                        )
+                    else:
+                        return load_dataset(
+                            dataset_name_to_use, 
+                            split=split_to_use, 
+                            trust_remote_code=True
+                        )
+        
+        # 데이터셋 로드 시도 (재시도 로직 포함)
+        dataset = None
+        current_config = config_name
+        current_split = split
+        current_actual_split = actual_split
+        max_retries = 3
+        retry_count = 0
+        
+        while dataset is None and retry_count < max_retries:
             try:
-                if download_full:
-                    dataset = load_dataset(dataset_name, split=split)
+                split_to_use = current_split if download_full else current_actual_split
+                dataset = try_load_dataset(base_dataset_name, current_config, split_to_use)
+            except Exception as e:
+                error_msg = str(e)
+                retry_count += 1
+                
+                # Config 관련 에러인지 확인
+                if "Config name is missing" in error_msg or "pick one among the available configs" in error_msg:
+                    # 사용 가능한 config 목록 가져오기
+                    try:
+                        from datasets import load_dataset_builder
+                        available_configs = get_dataset_config_names(base_dataset_name)
+                        
+                        if available_configs and len(available_configs) > 0:
+                            # train split이 있는 config를 우선 찾기
+                            preferred_config = None
+                            for config in available_configs:
+                                try:
+                                    builder = load_dataset_builder(base_dataset_name, config_name=config)
+                                    if hasattr(builder, 'info') and hasattr(builder.info, 'splits'):
+                                        splits = builder.info.splits
+                                        if splits and 'train' in splits:
+                                            preferred_config = config
+                                            break
+                                except Exception:
+                                    continue
+                            
+                            # train split이 있는 config가 없으면 첫 번째 config 사용
+                            auto_config = preferred_config if preferred_config else available_configs[0]
+                            current_config = auto_config
+                            
+                            print(f"⚠️ Config가 지정되지 않아 config '{auto_config}'를 자동으로 사용합니다.")
+                            print(f"   사용 가능한 configs: {', '.join(available_configs)}")
+                            print(f"   다른 config를 사용하려면 데이터셋 이름을 '{base_dataset_name}:{auto_config}' 형식으로 지정하세요.")
+                            
+                            # 선택된 config에 사용 가능한 split 확인 및 자동 조정
+                            try:
+                                builder = load_dataset_builder(base_dataset_name, config_name=auto_config)
+                                if hasattr(builder, 'info') and hasattr(builder.info, 'splits'):
+                                    available_splits = list(builder.info.splits.keys())
+                                    if current_split not in available_splits:
+                                        # train -> test -> validation 순서로 우선순위
+                                        for preferred_split in ['train', 'test', 'validation', 'val']:
+                                            if preferred_split in available_splits:
+                                                current_split = preferred_split
+                                                # actual_split도 업데이트
+                                                if "[" not in current_split:
+                                                    current_actual_split = f"{current_split}[:{num_samples}]"
+                                                else:
+                                                    current_actual_split = current_split
+                                                print(f"⚠️ 요청한 split이 없어 '{current_split}' split을 사용합니다.")
+                                                print(f"   사용 가능한 splits: {', '.join(available_splits)}")
+                                                break
+                            except Exception:
+                                pass  # split 확인 실패해도 계속 진행
+                            
+                            # 재시도
+                            retry_count -= 1  # 재시도 카운트 조정 (이번 시도는 재시도로 간주하지 않음)
+                            continue
+                        else:
+                            raise Exception(f"데이터셋 로드 실패: {base_dataset_name}\n에러: {e}")
+                    except Exception as config_error:
+                        raise Exception(f"데이터셋 로드 실패: {base_dataset_name}\n에러: {e}\nConfig 조회 실패: {config_error}")
+                
+                # Split 관련 에러인지 확인
+                elif "Unknown split" in error_msg or "Should be one of" in error_msg:
+                    # 사용 가능한 split 찾기
+                    try:
+                        from datasets import load_dataset_builder
+                        builder = load_dataset_builder(base_dataset_name, config_name=current_config) if current_config else load_dataset_builder(base_dataset_name)
+                        
+                        if hasattr(builder, 'info') and hasattr(builder.info, 'splits'):
+                            available_splits = list(builder.info.splits.keys())
+                            # train -> test -> validation 순서로 우선순위
+                            for preferred_split in ['train', 'test', 'validation', 'val']:
+                                if preferred_split in available_splits:
+                                    current_split = preferred_split
+                                    # actual_split도 업데이트
+                                    if "[" not in current_split:
+                                        current_actual_split = f"{current_split}[:{num_samples}]"
+                                    else:
+                                        current_actual_split = current_split
+                                    print(f"⚠️ 요청한 split이 없어 '{current_split}' split을 사용합니다.")
+                                    print(f"   사용 가능한 splits: {', '.join(available_splits)}")
+                                    break
+                            else:
+                                current_split = available_splits[0] if available_splits else "test"
+                                if "[" not in current_split:
+                                    current_actual_split = f"{current_split}[:{num_samples}]"
+                                else:
+                                    current_actual_split = current_split
+                                print(f"⚠️ split '{current_split}'을 사용합니다.")
+                                print(f"   사용 가능한 splits: {', '.join(available_splits)}")
+                            
+                            # 재시도
+                            retry_count -= 1  # 재시도 카운트 조정 (이번 시도는 재시도로 간주하지 않음)
+                            continue
+                        else:
+                            raise Exception(f"데이터셋 로드 실패: {base_dataset_name}\n에러: {e}")
+                    except Exception as split_error:
+                        raise Exception(f"데이터셋 로드 실패: {base_dataset_name}\n에러: {e}\nSplit 조회 실패: {split_error}")
                 else:
-                    dataset = load_dataset(dataset_name, split=actual_split)
-            except Exception:
-                raise Exception(f"데이터셋 로드 실패: {dataset_name}\n에러: {e}")
+                    if retry_count >= max_retries:
+                        raise Exception(f"데이터셋 로드 실패: {base_dataset_name}\n에러: {e}")
+                    else:
+                        raise Exception(f"데이터셋 로드 실패: {base_dataset_name}\n에러: {e}")
+        
+        if dataset is None:
+            raise Exception(f"데이터셋 로드 실패: {base_dataset_name} (최대 재시도 횟수 초과)")
         
         # 텍스트 컬럼 자동 감지
         if text_column is None:

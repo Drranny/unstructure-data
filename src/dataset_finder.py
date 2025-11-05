@@ -272,6 +272,18 @@ def get_predefined_datasets(task: str = None) -> List[Dict]:
         {"id": "stanford_dogs", "author": "stanford_dogs", "downloads": 80000, "likes": 250, "task": "image-classification"},
         {"id": "caltech101", "author": "caltech101", "downloads": 60000, "likes": 200, "task": "image-classification"},
         {"id": "imagenet-1k", "author": "imagenet1k", "downloads": 1000000, "likes": 2000, "task": "image-classification"},
+        # 추가 유명 이미지 데이터셋
+        {"id": "oxford-iiit-pet", "author": "oxford-iiit-pet", "downloads": 70000, "likes": 180, "task": "image-classification"},
+        {"id": "oxford_flowers102", "author": "oxford_flowers102", "downloads": 60000, "likes": 150, "task": "image-classification"},
+        {"id": "stanford-cars", "author": "stanford-cars", "downloads": 80000, "likes": 200, "task": "image-classification"},
+        {"id": "stl10", "author": "stl10", "downloads": 90000, "likes": 220, "task": "image-classification"},
+        {"id": "svhn", "author": "svhn", "downloads": 120000, "likes": 300, "task": "image-classification"},
+        {"id": "celeba", "author": "celeba", "downloads": 150000, "likes": 400, "task": "image-classification"},
+        {"id": "places365", "author": "places365", "downloads": 180000, "likes": 450, "task": "image-classification"},
+        {"id": "sun397", "author": "sun397", "downloads": 100000, "likes": 250, "task": "image-classification"},
+        {"id": "inat2021", "author": "inat2021", "downloads": 200000, "likes": 500, "task": "image-classification"},
+        {"id": "coco", "author": "coco", "downloads": 800000, "likes": 2000, "task": "object-detection"},
+        {"id": "openimages", "author": "openimages", "downloads": 600000, "likes": 1500, "task": "object-detection"},
     ]
     
     # 텍스트 데이터셋
@@ -286,6 +298,27 @@ def get_predefined_datasets(task: str = None) -> List[Dict]:
         {"id": "squad", "author": "squad", "downloads": 600000, "likes": 1500, "task": "question-answering"},
         {"id": "glue", "author": "glue", "downloads": 800000, "likes": 2000, "task": "text-classification"},
         {"id": "xnli", "author": "xnli", "downloads": 150000, "likes": 400, "task": "natural-language-inference"},
+        # 추가 유명 텍스트 데이터셋
+        {"id": "nyu-mll/glue", "author": "nyu-mll", "downloads": 800000, "likes": 2000, "task": "text-classification"},
+        {"id": "super_glue", "author": "super_glue", "downloads": 400000, "likes": 1000, "task": "text-classification"},
+        {"id": "squad_v2", "author": "squad_v2", "downloads": 500000, "likes": 1200, "task": "question-answering"},
+        {"id": "wikitext", "author": "wikitext", "downloads": 300000, "likes": 800, "task": "language-modeling"},
+        {"id": "wikitext-2", "author": "wikitext-2", "downloads": 250000, "likes": 600, "task": "language-modeling"},
+        {"id": "wikitext-103", "author": "wikitext-103", "downloads": 200000, "likes": 500, "task": "language-modeling"},
+        {"id": "bookcorpus", "author": "bookcorpus", "downloads": 400000, "likes": 1000, "task": "language-modeling"},
+        {"id": "common_crawl", "author": "common_crawl", "downloads": 500000, "likes": 1200, "task": "language-modeling"},
+        {"id": "openwebtext", "author": "openwebtext", "downloads": 350000, "likes": 900, "task": "language-modeling"},
+        {"id": "rotten_tomatoes", "author": "rotten_tomatoes", "downloads": 150000, "likes": 400, "task": "text-classification"},
+        {"id": "reuters", "author": "reuters", "downloads": 180000, "likes": 450, "task": "text-classification"},
+        {"id": "20newsgroups", "author": "20newsgroups", "downloads": 200000, "likes": 500, "task": "text-classification"},
+        {"id": "tweet_eval", "author": "tweet_eval", "downloads": 250000, "likes": 600, "task": "text-classification"},
+        {"id": "emotion", "author": "emotion", "downloads": 300000, "likes": 700, "task": "text-classification"},
+        {"id": "sentiment140", "author": "sentiment140", "downloads": 280000, "likes": 650, "task": "text-classification"},
+        {"id": "multi_nli", "author": "multi_nli", "downloads": 400000, "likes": 900, "task": "natural-language-inference"},
+        {"id": "snli", "author": "snli", "downloads": 350000, "likes": 800, "task": "natural-language-inference"},
+        {"id": "quora", "author": "quora", "downloads": 300000, "likes": 700, "task": "text-classification"},
+        {"id": "dbpedia_14", "author": "dbpedia_14", "downloads": 200000, "likes": 500, "task": "text-classification"},
+        {"id": "yahoo_answers_topics", "author": "yahoo_answers_topics", "downloads": 150000, "likes": 400, "task": "text-classification"},
     ]
     
     if task == "image-classification" or task is None:
