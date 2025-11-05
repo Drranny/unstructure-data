@@ -347,6 +347,70 @@ def load_tid2013(num_samples: int = 100, custom_path: str = None):
     
     return images
 
+def get_available_splits(dataset_name: str) -> List[str]:
+    """
+    Hugging Face 데이터셋의 사용 가능한 split 목록을 가져옵니다.
+    (데이터셋 다운로드 없이 메타데이터만 확인)
+    
+    Args:
+        dataset_name: Hugging Face 데이터셋 이름
+        
+    Returns:
+        List[str]: 사용 가능한 split 목록 (예: ['train', 'test', 'validation'])
+    """
+    # 먼저 HfApi로 시도 (다운로드 없이 빠름)
+    try:
+        from huggingface_hub import HfApi
+        
+        api = HfApi()
+        dataset_info = api.dataset_info(dataset_name)
+        
+        # splits 정보 추출
+        if hasattr(dataset_info, 'splits') and dataset_info.splits:
+            return list(dataset_info.splits.keys())
+    except Exception:
+        pass  # HfApi 실패 시 다음 방법 시도
+    
+    # HfApi에서 splits를 못 가져왔으면 datasets 라이브러리로 폴백
+    try:
+        from datasets import load_dataset_builder
+        
+        # trust_remote_code 없이 시도
+        try:
+            builder = load_dataset_builder(dataset_name)
+        except Exception:
+            # trust_remote_code가 필요한 경우
+            builder = load_dataset_builder(dataset_name, trust_remote_code=True)
+        
+        # 방법 1: builder.info.splits 확인
+        if hasattr(builder, 'info') and hasattr(builder.info, 'splits'):
+            splits = builder.info.splits
+            if splits:
+                return list(splits.keys())
+        
+        # 방법 2: builder.config.data_files에서 split 추출 (Parquet 기반 데이터셋)
+        if hasattr(builder, 'config') and hasattr(builder.config, 'data_files'):
+            data_files = builder.config.data_files
+            if data_files and isinstance(data_files, dict):
+                splits = list(data_files.keys())
+                if splits:
+                    return splits
+        
+        # 방법 3: builder.configs에서 split 추출
+        if hasattr(builder, 'configs') and builder.configs:
+            # 첫 번째 config의 data_files 확인
+            first_config = builder.configs[0]
+            if hasattr(first_config, 'data_files') and first_config.data_files:
+                if isinstance(first_config.data_files, dict):
+                    splits = list(first_config.data_files.keys())
+                    if splits:
+                        return splits
+    except Exception:
+        pass
+    
+    # 모든 방법 실패 시 기본값 반환
+    return ["train", "test", "validation", "val"]
+
 def load_huggingface_dataset(dataset_name: str, num_samples: int = 100, split: str = "train", image_column: str = None, download_full: bool = False, download_percentage: int = None):
     """
     Hugging Face Datasets에서 이미지 데이터셋을 로드합니다.
@@ -523,6 +587,7 @@ def load_huggingface_text_dataset(dataset_name: str, num_samples: int = 100, spl
     Returns:
         List[str]: 텍스트 리스트
     """
+    # get_available_splits 함수는 이미 위에 정의되어 있음
     try:
         from datasets import load_dataset
         

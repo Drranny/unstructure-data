@@ -462,6 +462,64 @@ with tab2:
         else:  # Hugging Face 검색
             dataset_option = "Hugging Face: 검색"
     
+    # 미리 정의된 Hugging Face 데이터셋인 경우 split 선택 (다운로드 전)
+    if dataset_option.startswith("Hugging Face:") and dataset_option != "Hugging Face: 검색":
+        hf_dataset_name = None
+        hf_text_dataset_name = None
+        
+        if data_type == "이미지":
+            if "beans" in dataset_option:
+                hf_dataset_name = "beans"
+            elif "food101" in dataset_option:
+                hf_dataset_name = "food101"
+            elif "cifar10" in dataset_option:
+                hf_dataset_name = "cifar10"
+        else:  # 텍스트
+            if "imdb" in dataset_option:
+                hf_text_dataset_name = "imdb"
+            elif "yelp" in dataset_option:
+                hf_text_dataset_name = "yelp_review_full"
+            elif "ag_news" in dataset_option:
+                hf_text_dataset_name = "ag_news"
+        
+        # Split 선택 (다운로드 전)
+        if hf_dataset_name or hf_text_dataset_name:
+            dataset_name = hf_dataset_name or hf_text_dataset_name
+            from src.dataset_analyzer import get_available_splits
+            try:
+                available_splits = get_available_splits(dataset_name)
+                default_split = "train" if "train" in available_splits else available_splits[0] if available_splits else "train"
+                split_index = available_splits.index(default_split) if default_split in available_splits else 0
+                
+                split_key = "img_split_predefined" if data_type == "이미지" else "text_split_predefined"
+                selected_split = st.selectbox(
+                    "Split 선택 (다운로드 전에 선택)",
+                    available_splits,
+                    index=split_index,
+                    key=split_key,
+                    help="train: 학습용 데이터, test: 테스트용 데이터, validation/val: 검증용 데이터"
+                )
+                if data_type == "이미지":
+                    st.session_state['selected_img_split_predefined'] = selected_split
+                else:
+                    st.session_state['selected_text_split_predefined'] = selected_split
+            except Exception:
+                available_splits = ["train", "test", "validation", "val"]
+                split_key = "img_split_predefined" if data_type == "이미지" else "text_split_predefined"
+                selected_split = st.selectbox(
+                    "Split 선택 (다운로드 전에 선택)",
+                    available_splits,
+                    index=0,
+                    key=split_key,
+                    help="train: 학습용 데이터, test: 테스트용 데이터, validation/val: 검증용 데이터"
+                )
+                if data_type == "이미지":
+                    st.session_state['selected_img_split_predefined'] = selected_split
+                else:
+                    st.session_state['selected_text_split_predefined'] = selected_split
+        
+        st.divider()
+    
     # Hugging Face 검색인 경우 먼저 검색 UI 표시
     if dataset_option == "Hugging Face: 검색":
         st.subheader("Hugging Face 데이터셋 검색")
@@ -534,6 +592,25 @@ with tab2:
                             )
                             if selected_id:
                                 st.session_state['selected_img_dataset'] = selected_id
+                                
+                                # 데이터셋 ID 입력 후 바로 split 선택 제공
+                                from src.dataset_analyzer import get_available_splits
+                                try:
+                                    available_splits = get_available_splits(selected_id)
+                                    default_split = "train" if "train" in available_splits else available_splits[0] if available_splits else "train"
+                                    split_index = available_splits.index(default_split) if default_split in available_splits else 0
+                                    
+                                    selected_split = st.selectbox(
+                                        "Split 선택 (다운로드 전에 선택)",
+                                        available_splits,
+                                        index=split_index,
+                                        key="img_split_preview",
+                                        help="train: 학습용 데이터, test: 테스트용 데이터, validation/val: 검증용 데이터"
+                                    )
+                                    st.session_state['selected_img_split'] = selected_split
+                                except Exception as e:
+                                    st.warning(f"Split 정보를 가져올 수 없습니다. 기본값(train)을 사용합니다: {e}")
+                                    st.session_state['selected_img_split'] = "train"
                         else:
                             if search_query:
                                 st.warning(f"'{search_query}'에 대한 검색 결과가 없습니다. 다른 검색어를 시도해보세요.")
@@ -609,6 +686,25 @@ with tab2:
                             )
                             if selected_id:
                                 st.session_state['selected_text_dataset'] = selected_id
+                                
+                                # 데이터셋 ID 입력 후 바로 split 선택 제공
+                                from src.dataset_analyzer import get_available_splits
+                                try:
+                                    available_splits = get_available_splits(selected_id)
+                                    default_split = "train" if "train" in available_splits else available_splits[0] if available_splits else "train"
+                                    split_index = available_splits.index(default_split) if default_split in available_splits else 0
+                                    
+                                    selected_split = st.selectbox(
+                                        "Split 선택 (다운로드 전에 선택)",
+                                        available_splits,
+                                        index=split_index,
+                                        key="text_split_preview",
+                                        help="train: 학습용 데이터, test: 테스트용 데이터, validation/val: 검증용 데이터"
+                                    )
+                                    st.session_state['selected_text_split'] = selected_split
+                                except Exception as e:
+                                    st.warning(f"Split 정보를 가져올 수 없습니다. 기본값(train)을 사용합니다: {e}")
+                                    st.session_state['selected_text_split'] = "train"
                         else:
                             if search_query:
                                 st.warning(f"'{search_query}'에 대한 검색 결과가 없습니다. 다른 검색어를 시도해보세요.")
@@ -681,13 +777,43 @@ with tab2:
                         if not hf_dataset_name:
                             st.error("데이터셋 ID를 입력해주세요.")
                             st.stop()
-                        split_name = st.selectbox("Split 선택", ["train", "test", "validation", "val"], index=0, key="img_split_search")
+                        
+                        # 이미 선택된 split이 있으면 사용, 없으면 기본값
+                        split_name = st.session_state.get('selected_img_split', 'train')
+                        
+                        # split이 유효한지 확인하고 필요시 다시 가져오기
+                        from src.dataset_analyzer import get_available_splits
+                        try:
+                            available_splits = get_available_splits(hf_dataset_name)
+                            if split_name not in available_splits:
+                                split_name = "train" if "train" in available_splits else available_splits[0] if available_splits else "train"
+                        except Exception:
+                            available_splits = ["train", "test", "validation", "val"]
+                            if split_name not in available_splits:
+                                split_name = "train"
+                        
+                        st.info(f"선택된 Split: **{split_name}** (위에서 변경 가능)")
                     else:  # 텍스트
                         hf_dataset_name = st.session_state.get('selected_text_dataset', '')
                         if not hf_dataset_name:
                             st.error("데이터셋 ID를 입력해주세요.")
                             st.stop()
-                        split_name = st.selectbox("Split 선택", ["train", "test", "validation", "val"], index=0, key="text_split_search")
+                        
+                        # 이미 선택된 split이 있으면 사용, 없으면 기본값
+                        split_name = st.session_state.get('selected_text_split', 'train')
+                        
+                        # split이 유효한지 확인하고 필요시 다시 가져오기
+                        from src.dataset_analyzer import get_available_splits
+                        try:
+                            available_splits = get_available_splits(hf_dataset_name)
+                            if split_name not in available_splits:
+                                split_name = "train" if "train" in available_splits else available_splits[0] if available_splits else "train"
+                        except Exception:
+                            available_splits = ["train", "test", "validation", "val"]
+                            if split_name not in available_splits:
+                                split_name = "train"
+                        
+                        st.info(f"선택된 Split: **{split_name}** (위에서 변경 가능)")
                     
                     # 검색으로 선택한 데이터셋 다운로드
                     if download_full:
@@ -773,7 +899,8 @@ with tab2:
                         
                         # 이미지 데이터셋 다운로드 처리
                         if hf_dataset_name:
-                            split_name = st.selectbox("Split 선택", ["train", "test", "validation", "val"], index=0, key="img_split_predefined")
+                            # 이미 선택된 split 사용 (다운로드 전에 선택됨)
+                            split_name = st.session_state.get('selected_img_split_predefined', 'train')
                             if download_full:
                                 images = load_huggingface_dataset(
                                     hf_dataset_name,
@@ -825,7 +952,8 @@ with tab2:
                         
                         # 텍스트 데이터셋 다운로드 처리
                         if hf_text_dataset_name:
-                            split_name = st.selectbox("Split 선택", ["train", "test", "validation", "val"], index=0, key="text_split_predefined")
+                            # 이미 선택된 split 사용 (다운로드 전에 선택됨)
+                            split_name = st.session_state.get('selected_text_split_predefined', 'train')
                             if download_full:
                                 texts = load_huggingface_text_dataset(
                                     hf_text_dataset_name,
