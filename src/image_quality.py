@@ -122,17 +122,17 @@ def calculate_noise_score(gray_image: np.ndarray) -> float:
         return 0.0
     
     try:
-        # [수정됨] 블러 강도 줄임
+        # 블러 강도 줄임
         blur = cv2.GaussianBlur(gray_image, (3, 3), 0)
         diff = cv2.absdiff(gray_image, blur)
 
-        # [수정됨] 평균 + 표준편차를 함께 사용 (작은 노이즈도 감지)
+        # 평균 + 표준편차를 함께 사용 (작은 노이즈도 감지)
         noise_level = 0.6 * diff.std() + 0.4 * diff.mean()
 
-        # [수정됨] 정규화 기준 낮춤 (노이즈 민감도 ↑)
+        # 정규화 기준 낮춤 (노이즈 민감도 ↑)
         normalized_noise = np.clip(noise_level / 20, 0, 1)
 
-        # [수정됨] 흐릿한 이미지 감점
+        # 흐릿한 이미지 감점
         lap_var = cv2.Laplacian(gray_image, cv2.CV_64F).var()
         blur_factor = np.clip(1 - lap_var / 500, 0, 1)
 
@@ -141,34 +141,7 @@ def calculate_noise_score(gray_image: np.ndarray) -> float:
         noise_score = float(np.clip(noise_score, 0.0, 1.0))
 
         return noise_score
-        '''
-        # 가우시안 블러 적용
-        blur = cv2.GaussianBlur(gray_image, (5, 5), 0)
-        
-        # 원본과 블러 이미지의 차이 계산
-        diff = cv2.absdiff(gray_image, blur)
-        noise_level = diff.std()
-        
-        # 노이즈 수준을 점수로 변환
-        # 노이즈가 적을수록 높은 점수
-        # 0-10: 매우 깨끗 (1.0)
-        # 10-30: 양호 (0.8-1.0)
-        # 30-50: 보통 (0.6-0.8)
-        # 50+: 노이즈 많음 (0.6 이하)
-        
-        if noise_level <= 10:
-            noise_score = 1.0
-        elif noise_level <= 30:
-            noise_score = 0.9 + (noise_level - 10) / 20 * 0.2 # 0.9 ~ 0.7
-        elif noise_level <= 50:
-            noise_score = 0.7 + (noise_level - 30) / 20 * 0.2 # 0.7 ~ 0.5
-        elif noise_level <= 80:
-            noise_level = 0.5 - (noise_level - 50) / 30 * 0.2 # 0.5 ~ 0.3
-        else:
-            noise_score = max(0.2, 0.3 - (noise_level - 80) / 200)
-        
-        return min(max(noise_score, 0.0), 1.0)
-        '''
+    
     except Exception as e:
         print(f"노이즈 계산 실패: {e}")
         return 0.5
