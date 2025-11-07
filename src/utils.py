@@ -334,7 +334,14 @@ def generate_image_report_pdf(image_scores: dict, total_score: float, grade: str
             "중복도": "중복 이미지 비율"
         }
         desc = description_map.get(key, "품질 지표")
-        metrics_data.append([key, f"{value:.3f}", desc])
+        # 숫자일 경우에만 소수점 포맷팅 적용
+        if isinstance(value, (int, float)):
+            score_display = f"{value:.3f}"
+        # 문자열("N/A")이거나 다른 타입일 경우 문자열로 변환 (오류 지점 해결!)
+        else:
+            score_display = str(value) 
+        
+        metrics_data.append([key, score_display, desc])
     
     metrics_table = Table(metrics_data, colWidths=[2.5*inch, 1*inch, 2.5*inch])
     metrics_table.setStyle(TableStyle([
@@ -452,13 +459,14 @@ def generate_dataset_report_pdf(results: dict, data_type: str, dataset_name: str
     
     metrics_data = [['지표', '평균값']]
     for key, value in metrics_to_show.items():
+        # 숫자일 경우에만 소수점 포맷팅 적용
         if isinstance(value, (int, float)):
-            metrics_data.append([key, f"{value:.3f}"])
-        elif isinstance(value, dict):
-            # 딕셔너리는 문자열로 변환
-            metrics_data.append([key, str(value)])
+            score_display = f"{value:.3f}"
+        # 문자열("N/A")이거나 다른 타입일 경우 문자열로 변환
         else:
-            metrics_data.append([key, str(value)])
+            score_display = str(value) 
+            
+        metrics_data.append([key, score_display])
     
     metrics_table = Table(metrics_data, colWidths=[4*inch, 2*inch])
     metrics_table.setStyle(TableStyle([

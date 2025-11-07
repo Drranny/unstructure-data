@@ -265,6 +265,7 @@ with tab1:
             # 이미지 미리보기
             from PIL import Image
             import io
+            import pandas as pd
             
             uploaded_file.seek(0)  # 파일 포인터 리셋
             img = Image.open(io.BytesIO(uploaded_file.read()))
@@ -280,28 +281,39 @@ with tab1:
                     img = Image.open(io.BytesIO(uploaded_file.read()))
                     
                     with st.spinner("이미지 품질을 분석 중입니다..."):
-                        image_scores = analyze_image_quality(img)
+                        # ------------------- 1. analyze_dataset_images 호출 -------------------
+                        # 단일 이미지를 리스트로 묶어 dataset_analyzer.py로 전달
+                        results = analyze_dataset_images(images=[img], max_samples=1)
+                        
+                        # results에서 최종 결과 추출
+                        image_scores = results.get("개별 점수", [{}])[0] # 단일 이미지이므로 첫 번째 개별 점수 사용
+                        total = results.get('평균 종합 점수', 0.0)
+                        grade = get_grade(total)
+                        is_single_image_analysis = (results.get("단일 분석 여부") == "예")
     
                     # 결과를 세션에 저장
-                    total = calc_total_score(image_scores)
-                    grade = get_grade(total)
                     st.session_state['last_image_analysis'] = {
                         'scores': image_scores,
                         'total': total,
                         'grade': grade,
-                        'file_name': uploaded_file.name
+                        'file_name': uploaded_file.name,
+                        'is_single': is_single_image_analysis
                     }
     
                     # 결과 표시
                     st.subheader("분석 결과")
+                    if is_single_image_analysis:
+                        st.warning("⚠️ **중복도 항목 제외 안내:** 단일 이미지 분석이므로 중복도 지표를 제외한 **3가지 주요 지표**를 기반으로 종합 점수를 산출했습니다. (중복도는 N/A로 표시됩니다.)")
                     
                     result_col1, result_col2 = st.columns([1, 1])
                     
+                    # st.dataframe에 사용할 데이터 준비 (중복도 N/A 처리 포함)
+                    scores_for_df = {k: [v] for k, v in image_scores.items()}
+                    df_to_show = pd.DataFrame(scores_for_df, index=["점수"])
+                    
                     with result_col1:
-                        st.dataframe(
-                            image_scores,
-                            use_container_width=True
-                        )
+                        # 중복도 N/A가 포함된 데이터프레임 출력
+                        st.dataframe(df_to_show.T, use_container_width=True)
                     
                     with result_col2:
                         st.metric("종합 품질 점수", f"{total:.3f}")
@@ -317,7 +329,10 @@ with tab1:
                             st.error("품질 개선이 시급합니다.")
                     
                     st.subheader("상세 품질 지표 분석")
-                    st.bar_chart(image_scores)
+                    chart_data = {
+                        k: v for k, v in image_scores.items() if v != "N/A"
+                    }
+                    st.bar_chart(chart_data)
                     
                     # PDF 다운로드 버튼
                     st.divider()
