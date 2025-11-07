@@ -7,7 +7,7 @@ import numpy as np
 import imagehash
 from PIL import Image
 
-def analyze_image_quality(img: Image.Image):
+def analyze_image_quality(img: Image.Image, is_single_image: bool = False):
     """
     이미지 품질을 분석하여 지표를 반환합니다.
     
@@ -45,16 +45,25 @@ def analyze_image_quality(img: Image.Image):
     # 3. 노이즈 점수
     noise_score = calculate_noise_score(gray)
     
-    # 4. 중복도 (기본값: 1.0, 실제 비교는 데이터셋 간 비교 시 사용)
-    hash_val = imagehash.average_hash(img)
-    duplication_score = 1.0  # 단일 이미지 분석 시에는 중복 없음으로 가정
+    # 4. 중복도 (단일 분석일 경우 None 반환)
+    # 단일 이미지의 경우 의미 없는 1.0을 반환하는 대신 None을 반환하도록 변경합니다.
+    if is_single_image:
+        duplication_score = None 
+    else:
+        # 배치 루프에서 호출되는 경우
+        duplication_score = 1.0 
     
-    return {
+    result = {
         "해상도": round(resolution_score, 3),
         "선명도": round(sharpness_score, 3),
         "노이즈": round(noise_score, 3),
-        "중복도": round(duplication_score, 3),
     }
+    
+    # 단일 이미지가 아닐 때만 중복도 점수를 추가하여 반환합니다.
+    if duplication_score is not None:
+        result["중복도"] = round(duplication_score, 3)
+        
+    return result
 
 def calculate_resolution_score(height: int, width: int) -> float:
     """

@@ -35,6 +35,8 @@ def analyze_dataset_images(images: List[Image.Image], max_samples: int = 100) ->
     # 샘플링 (너무 많으면 일부만)
     # 참고: random.sample을 사용하여 무작위로 선택하므로,
     # 해상도가 다른 이미지들이 골고루 선택될 수 있습니다.
+    is_single_image = (len(images) == 1)
+    
     original_count = len(images)
     if len(images) > max_samples:
         import random
@@ -58,13 +60,25 @@ def analyze_dataset_images(images: List[Image.Image], max_samples: int = 100) ->
     
     # 각 이미지 분석
     for img in images:
-        scores = analyze_image_quality(img)
-        total = (scores["해상도"] + scores["선명도"] + (1 - scores["노이즈"]) + (1 - scores["중복도"])) / 4
+        scores = analyze_image_quality(img, is_single_image=is_single_image)
+        
+        score_count = len(scores) # 단일 분석 시 3, 배치 분석 시 4
+        
+        if score_count == 3: # 단일 분석 (중복도 제외)
+            total = (scores["해상도"] + scores["선명도"] + (1 - scores["노이즈"])) / 3
+            dup_score = "N/A"
+        else: # 배치 분석 (중복도 포함)
+            total = (scores["해상도"] + scores["선명도"] + (1 - scores["노이즈"]) + (1 - scores["중복도"])) / 4
+            dup_score = scores["중복도"]
         
         all_scores["해상도"].append(scores["해상도"])
         all_scores["선명도"].append(scores["선명도"])
         all_scores["노이즈"].append(scores["노이즈"])
-        all_scores["중복도"].append(scores["중복도"])
+        
+        if not is_single_image:
+             # 중복도 항목은 배치 분석일 때만 scores에 있으므로 저장
+            all_scores["중복도"].append(scores["중복도"])
+            
         all_scores["종합점수"].append(total)
         
         # 개별 점수 저장
@@ -72,7 +86,7 @@ def analyze_dataset_images(images: List[Image.Image], max_samples: int = 100) ->
             "해상도": round(scores["해상도"], 3),
             "선명도": round(scores["선명도"], 3),
             "노이즈": round(scores["노이즈"], 3),
-            "중복도": round(scores["중복도"], 3),
+            "중복도": dup_score if isinstance(dup_score, str) else round(dup_score, 3),
             "종합점수": round(total, 3),
         })
         
@@ -80,20 +94,25 @@ def analyze_dataset_images(images: List[Image.Image], max_samples: int = 100) ->
         actual_resolutions.append((img.width, img.height))
         
         # 중복도 계산을 위한 해시 저장
-        image_hashes.append(imagehash.average_hash(img))
+        if not is_single_image:
+            image_hashes.append(imagehash.average_hash(img))
     
-    # 중복도 재계산 (전체 이미지 간)
-    if len(image_hashes) > 1:
-        avg_dup = calculate_duplication_score(image_hashes)
-    else:
-        avg_dup = np.mean(all_scores["중복도"])
         
     # 종합 점수 재계산: 개별 평균을 기반으로 계산
     avg_resolution = np.mean(all_scores["해상도"])
     avg_sharpness  = np.mean(all_scores["선명도"])
     avg_noise      = np.mean(all_scores["노이즈"])
-    avg_total      = (avg_resolution + avg_sharpness + (1 - avg_noise) + (1 - avg_dup)) / 4  # ✅ 수정
-
+    
+    if not is_single_image and len(image_hashes) > 1:
+        # 배치 분석: 중복도 계산 및 4개 지표 기반 최종 종합 점수 계산
+        avg_dup = calculate_duplication_score(image_hashes)
+        avg_total = np.mean(all_scores["종합점수"])
+        report_avg_dup = round(avg_dup, 3) 
+    else:
+        # 단일 분석: 중복도 N/A 처리 및 3개 지표 기반 최종 종합 점수 계산
+        avg_total = np.mean(all_scores["종합점수"])
+        report_avg_dup = "N/A" 
+    
     # 해상도 통계 계산
     widths = [r[0] for r in actual_resolutions]
     heights = [r[1] for r in actual_resolutions]
@@ -107,11 +126,12 @@ def analyze_dataset_images(images: List[Image.Image], max_samples: int = 100) ->
         "평균 해상도": round(avg_resolution, 3),
         "평균 선명도": round(avg_sharpness, 3),
         "평균 노이즈": round(avg_noise, 3),
-        "평균 중복도": round(avg_dup, 3),
+        "평균 중복도": report_avg_dup,
         "평균 종합 점수": round(avg_total, 3),
         "최소 종합 점수": round(np.min(all_scores["종합점수"]), 3),
         "최대 종합 점수": round(np.max(all_scores["종합점수"]), 3),
-        "표준편차": round(np.std(all_scores["종합점수"]), 3),
+        "표준편차": round(np.std(all_scores["종합점수"]), 3) if len(all_scores["종합점수"]) > 1 else 0.0,
+        
         # 실제 해상도 정보 추가
         "해상도 분포": {
             "최소": f"{min(widths)}x{min(heights)}",
