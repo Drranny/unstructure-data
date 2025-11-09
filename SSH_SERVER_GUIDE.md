@@ -251,8 +251,4 @@ tmux attach -t streamlit
 
 이렇게 하면 서버에서 실행하지만 로컬 브라우저로 접속할 수 있습니다!
 
-## 🔗 MinIO VPN 접속
-
-서버에서 실행하는 프로그램이 VPN이 필요한 MinIO에 접속해야 하는 경우:
-- [MINIO_SETUP.md](MINIO_SETUP.md) 참고 
 
