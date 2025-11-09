@@ -340,22 +340,6 @@ scores = analyze_image_quality_by_type(img, image_type)
 # 자연 사진: 노이즈 감지 개선
 ```
 
-### 3. 실제 맞춤법 검사 API 연동
-
-```python
-# ✅ 이미 구현됨
-# - 영어: pyenchant 라이브러리 사용
-# - 한국어: py-hanspell 라이브러리 사용 (Naver API)
-# - 없으면 패턴 기반 fallback
-```
-
-### 4. 맥락 단절 검사
-
-```python
-# ✅ 이미 구현됨
-# - Sentence Transformer 기반 문장 간 유사도 계산
-# - 유사도 < 0.3이면 맥락 단절로 판단
-```
 
 ---
 
