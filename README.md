@@ -248,13 +248,13 @@ unstructure/
 
 | 문서 | 설명 | 언제 읽을까? |
 |------|------|------------|
-| **[ALGORITHM_DESCRIPTION.md](ALGORITHM_DESCRIPTION.md)** | 품질 진단 알고리즘 상세 설명 | 알고리즘 작동 원리를 이해하고 싶을 때 |
-| **[PROJECT_SUMMARY.md](PROJECT_SUMMARY.md)** | 개발 완료 보고서 (모든 기능 상세) | 전체 기능을 한눈에 파악하고 싶을 때 |
-| **[HUGGINGFACE_DATASETS.md](HUGGINGFACE_DATASETS.md)** | Hugging Face 데이터셋 사용 가이드 | 다양한 데이터셋을 사용하고 싶을 때 |
-| **[LOCAL_USE_ONLY.md](LOCAL_USE_ONLY.md)** | 로컬 사용 가이드 | 로컬에서만 실행할 때 (간단 버전) |
-| **[SSH_SERVER_GUIDE.md](SSH_SERVER_GUIDE.md)** | SSH 서버 실행 가이드 | 서버에서 실행할 때 |
-| **[TECHNOLOGY_STACK.md](TECHNOLOGY_STACK.md)** | 기술 스택 및 프레임워크 정리 | 사용된 기술을 이해하고 싶을 때 |
-| **[METRICS_MAPPING.md](METRICS_MAPPING.md)** | 품질 지표 항목명 매핑 가이드 | 지표 이름 매핑을 확인하고 싶을 때 |
+| **[ALGORITHM_DESCRIPTION.md](docs/ALGORITHM_DESCRIPTION.md)** | 품질 진단 알고리즘 상세 설명 | 알고리즘 작동 원리를 이해하고 싶을 때 |
+| **[PROJECT_SUMMARY.md](docs/PROJECT_SUMMARY.md)** | 개발 완료 보고서 (모든 기능 상세) | 전체 기능을 한눈에 파악하고 싶을 때 |
+| **[HUGGINGFACE_DATASETS.md](docs/HUGGINGFACE_DATASETS.md)** | Hugging Face 데이터셋 사용 가이드 | 다양한 데이터셋을 사용하고 싶을 때 |
+| **[LOCAL_USE_ONLY.md](docs/LOCAL_USE_ONLY.md)** | 로컬 사용 가이드 | 로컬에서만 실행할 때 (간단 버전) |
+| **[SSH_SERVER_GUIDE.md](docs/SSH_SERVER_GUIDE.md)** | SSH 서버 실행 가이드 | 서버에서 실행할 때 |
+| **[TECHNOLOGY_STACK.md](docs/TECHNOLOGY_STACK.md)** | 기술 스택 및 프레임워크 정리 | 사용된 기술을 이해하고 싶을 때 |
+| **[METRICS_MAPPING.md](docs/METRICS_MAPPING.md)** | 품질 지표 항목명 매핑 가이드 | 지표 이름 매핑을 확인하고 싶을 때 |
 
 ## 📄 라이선스
 
