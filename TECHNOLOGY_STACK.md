@@ -396,8 +396,4 @@ pandas>=2.0.0               # 데이터프레임 처리
 - [OpenCV 문서](https://docs.opencv.org)
 - [ReportLab 문서](https://www.reportlab.com/docs)
 
----
-
-**작성일**: 2024년  
-**프로젝트**: AI 학습용 비정형데이터 품질진단 프로그램
 
