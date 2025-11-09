@@ -9,7 +9,7 @@
 
 ---
 
-## ✅ 구현 완료된 주요 기능
+## ✅ 주요 기능
 
 ### 1. **단일 파일 분석 (탭 1)**
 - 샘플 데이터 테스트 기능 추가 (사이드바)
@@ -159,7 +159,7 @@
 
 ```
 unstructure/
-├── app.py                          # Streamlit 메인 애플리케이션 (40줄) ⭐ 리팩토링 완료
+├── app.py                          # Streamlit 메인 애플리케이션
 ├── requirements.txt                # Python 패키지 의존성 목록
 │
 ├── src/                            # 핵심 분석 모듈
@@ -171,7 +171,7 @@ unstructure/
 │   ├── dataset_finder.py          # Hugging Face 데이터셋 검색
 │   ├── quality_evaluator.py       # 라벨링 기반 품질 평가 모듈
 │   │
-│   └── ui/                        # UI 모듈 (리팩토링: 2024년 12월)
+│   └── ui/                        # UI 모듈 
 │       ├── __init__.py
 │       ├── common.py              # 사이드바, CSS 스타일 (약 150줄)
 │       ├── tab1_single.py         # 단일 파일 분석 탭 (약 400줄)
@@ -218,26 +218,9 @@ unstructure/
 
 ---
 
-## 📦 주요 패키지 및 의존성
+## 📦 주요 패키지 및 의존성 참고자료
 
-| 패키지 | 버전 | 용도 |
-|--------|------|------|
-| `streamlit` | >=1.28.0 | 웹 UI 프레임워크 |
-| `opencv-python` | >=4.8.0 | 이미지 처리 (Laplacian, Gaussian Blur) |
-| `numpy` | >=1.24.0 | 수치 연산 |
-| `pillow` | >=10.0.0 | 이미지 로드/처리 |
-| `sentence-transformers` | >=2.2.0 | 텍스트 임베딩 (다양성 분석) |
-| `rouge-score` | >=0.1.2 | ROUGE 점수 계산 (라벨링 기반 평가) |
-| `nltk` | >=3.8 | BLEU 점수 계산 (라벨링 기반 평가) |
-| `jiwer` | >=3.0 | CER 계산 (라벨링 기반 평가) |
-| `pandas` | >=2.0.0 | 데이터프레임 처리 |
-| `torch` | >=2.0.0 | 딥러닝 프레임워크 |
-| `torchvision` | >=0.15.0 | CIFAR-10 데이터셋 로드 |
-| `transformers` | >=4.30.0 | Hugging Face 모델 지원 |
-| `datasets` | >=2.14.0 | Hugging Face 데이터셋 로드 |
-| `huggingface_hub` | >=0.20.0 | 데이터셋 검색 및 목록 조회 |
-| `imagehash` | >=4.3.1 | 이미지 해시 생성 (중복 검사) |
-| `scikit-learn` | >=1.3.0 | 유틸리티 함수 |
+**[TECHNOLOGY_STACK.md](TECHNOLOGY_STACK.md)**
 
 ---
 
@@ -383,7 +366,7 @@ unstructure/
 
 ## 📝 파일별 역할
 
-### `app.py` (40줄) ⭐ 리팩토링 완료
+### `app.py` 
 - Streamlit 웹 애플리케이션 메인 파일
 - 탭 생성 및 각 탭 모듈 호출만 담당
 - 2,476줄 → 40줄로 대폭 축소 (2024년 12월 리팩토링)
@@ -399,7 +382,7 @@ unstructure/
 - `analyze_image_quality(img: Image.Image)` 함수
 - OpenCV 기반 이미지 처리
 
-### `src/utils.py` (514줄)
+### `src/utils.py` 
 - 공통 유틸리티 함수
 - `calc_total_score()`: 종합 점수 계산
 - `get_grade()`: 점수 → 등급 변환
@@ -407,7 +390,7 @@ unstructure/
   - 한글 폰트 지원 (NotoSansKR)
   - 데이터셋/파일명 정보 포함
 
-### `src/dataset_analyzer.py` (985줄)
+### `src/dataset_analyzer.py` 
 - 데이터셋 로드 및 배치 분석
 - CIFAR-10, Hugging Face, 커스텀 폴더 지원
 - 텍스트/이미지 데이터셋 배치 분석 함수
@@ -431,14 +414,14 @@ unstructure/
 - `evaluate_safety()`: 안전성 평가 (ToxicityRate)
 - `evaluate_quality_with_thresholds()`: 임계값 기반 종합 평가
 
-### `src/ui/` (리팩토링: 2024년 12월)
+### `src/ui/` 
 - **`common.py`**: 사이드바, CSS 스타일, 샘플 데이터 생성 함수
 - **`tab1_single.py`**: 단일 파일 분석 탭 UI 로직
 - **`tab2_batch.py`**: 데이터셋 배치 분석 탭 UI 로직
 - **`tab3_labeling.py`**: 라벨링 기반 평가 탭 UI 로직
 - **`tab4_guide.py`**: 품질 지표 가이드 탭 UI 로직
 
-### `config/quality_thresholds.json` (신규)
+### `config/quality_thresholds.json` 
 - 품질 지표 임계값 설정 파일
 - 각 지표별 임계값 및 설명 포함
 
@@ -447,22 +430,22 @@ unstructure/
 ## 🌟 주요 성과
 
 ### 구현 완료 사항
-✅ 단일 파일 분석 기능 (텍스트/이미지)  
-✅ 데이터셋 배치 분석 기능  
-✅ Hugging Face 데이터셋 통합 (검색 + 다운로드)  
-✅ 3가지 다운로드 방식 (샘플 개수/퍼센티지/전체)  
-✅ 명시적 UI 플로우 (3단계 프로세스)  
-✅ 인기 데이터셋 목록 표시  
-✅ 화이트 & 블루 테마 적용  
-✅ 샘플 데이터 테스트 기능  
-✅ PDF 보고서 다운로드 기능 (데이터셋/파일명 정보 포함)
-✅ 개선된 데이터셋 검색 기능 (정확한 ID 검색, 자동 재시도, 넓은 검색 범위)  
+단일 파일 분석 기능 (텍스트/이미지)  
+데이터셋 배치 분석 기능  
+Hugging Face 데이터셋 통합 (검색 + 다운로드)  
+3가지 다운로드 방식 (샘플 개수/퍼센티지/전체)  
+명시적 UI 플로우 (3단계 프로세스)  
+인기 데이터셋 목록 표시  
+화이트 & 블루 테마 적용  
+샘플 데이터 테스트 기능  
+PDF 보고서 다운로드 기능 (데이터셋/파일명 정보 포함)
+개선된 데이터셋 검색 기능 (정확한 ID 검색, 자동 재시도, 넓은 검색 범위)  
 
 ### 기술적 성과
-✅ 메모리 효율적인 Streaming 다운로드  
-✅ 퍼센티지 기반 부분 다운로드  
-✅ 다양한 데이터셋 소스 통합  
-✅ 모듈화된 코드 구조  
+메모리 효율적인 Streaming 다운로드  
+퍼센티지 기반 부분 다운로드  
+다양한 데이터셋 소스 통합  
+모듈화된 코드 구조  
 
 ---
 
@@ -488,43 +471,6 @@ ssh -L 8501:localhost:8501 사용자명@서버주소
 http://localhost:8501
 ```
 
----
-
-## 📚 추가 문서
-
-- **ALGORITHM_DESCRIPTION.md**: 품질 진단 알고리즘 상세 설명
-- **HUGGINGFACE_DATASETS.md**: Hugging Face 데이터셋 사용 가이드
-- **SSH_SERVER_GUIDE.md**: SSH 서버에서 실행하는 방법
-- **LOCAL_USE_ONLY.md**: 로컬 사용 가이드
-
----
-
-## 💡 개발 완료 상태
-
-### ✅ 완료된 기능
-- [x] 텍스트 품질 진단 알고리즘 (형식 정확성, 다양성, 완전성)
-- [x] 이미지 품질 진단 알고리즘 (해상도, 유효성, 다양성)
-- [x] 단일 파일 분석 UI (탭 1)
-- [x] 데이터셋 배치 분석 UI (탭 2)
-- [x] 라벨링 기반 평가 UI (탭 3)
-- [x] 품질 지표 가이드 (탭 4)
-- [x] Hugging Face 데이터셋 통합
-- [x] 데이터셋 검색 기능
-- [x] 인기 데이터셋 목록 표시
-- [x] 퍼센티지 기반 다운로드
-- [x] 커스텀 폴더 지원
-- [x] 화이트 & 블루 테마 적용
-- [x] 샘플 데이터 테스트 기능
-- [x] 품질 지표 이름 통일 (형식 정확성, 다양성, 유효성)
-- [x] 코드 리팩토링 완료 (app.py 모듈화, 2,476줄 → 40줄)
-
-### 📊 코드 통계 (리팩토링 후)
-- **총 파일 수**: 16개 (Python 파일 11개, 문서 5개)
-- **총 코드 라인**: 약 2,300+ 줄
-- **주요 모듈**: 
-  - 분석 모듈: 6개 (`text_quality`, `image_quality`, `utils`, `dataset_analyzer`, `dataset_finder`, `quality_evaluator`)
-  - UI 모듈: 5개 (`common`, `tab1_single`, `tab2_batch`, `tab3_labeling`, `tab4_guide`)
-- **app.py**: 2,476줄 → 40줄 (약 98% 감소) ⭐ 리팩토링 완료
 
 ---
 
@@ -542,6 +488,6 @@ http://localhost:8501
 
 ---
 
-**최종 업데이트**: 2024년 11월  
+**최종 업데이트**: 2025년 11월  
 **개발 상태**: ✅ 완료 (프로토타입 버전)
 
