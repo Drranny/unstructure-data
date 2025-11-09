@@ -142,19 +142,20 @@ http://localhost:8501
 
 ```
 unstructure/
-├── app.py                        # ⭐ 메인 앱 (40줄) - 탭 생성 및 모듈 호출
-├── requirements.txt              # Python 패키지 의존성 목록
+├── app.py                          # Streamlit 메인 애플리케이션
+├── requirements.txt                # Python 패키지 의존성 목록
+├── README.md                       # 프로젝트 설명서
 │
-├── src/                          # 핵심 분석 모듈
+├── src/                            # 핵심 분석 모듈
 │   ├── __init__.py
-│   ├── text_quality.py          # ⭐ 텍스트 품질진단 알고리즘
-│   ├── image_quality.py          # ⭐ 이미지 품질진단 알고리즘
-│   ├── utils.py                  # 공통 함수 (점수 계산, 등급 산출, PDF 보고서 생성)
-│   ├── dataset_analyzer.py       # 데이터셋 로드 및 배치 분석
-│   ├── dataset_finder.py         # Hugging Face 데이터셋 검색
-│   ├── quality_evaluator.py      # 라벨링 기반 품질 평가 모듈
+│   ├── text_quality.py            # 텍스트 품질 진단 알고리즘
+│   ├── image_quality.py           # 이미지 품질 진단 알고리즘
+│   ├── utils.py                   # 공통 함수 (점수 계산, 등급 산출, PDF 보고서 생성)
+│   ├── dataset_analyzer.py        # 데이터셋 로드 및 배치 분석
+│   ├── dataset_finder.py          # Hugging Face 데이터셋 검색
+│   ├── quality_evaluator.py       # 라벨링 기반 품질 평가 모듈
 │   │
-│   └── ui/                       # UI 모듈 (리팩토링)
+│   └── ui/                        # UI 모듈 
 │       ├── __init__.py
 │       ├── common.py              # 사이드바, CSS 스타일 (약 150줄)
 │       ├── tab1_single.py         # 단일 파일 분석 탭 (약 400줄)
@@ -162,29 +163,30 @@ unstructure/
 │       ├── tab3_labeling.py      # 라벨링 기반 평가 탭 (약 420줄)
 │       └── tab4_guide.py          # 품질 지표 가이드 탭 (약 460줄)
 │
-├── config/                       # 설정 파일
+├── config/                        # 설정 파일
 │   └── quality_thresholds.json   # 품질 지표 임계값 설정
 │
-├── sample_data/                  # 샘플 테스트 데이터
+├── sample_data/                   # 샘플 테스트 데이터
 │   └── sample_text.txt
 │
-├── data/                         # 다운로드된 데이터셋 저장소 (자동 생성)
-│   └── cifar-10-batches-py/      # CIFAR-10 데이터셋
+├── data/                          # 다운로드된 데이터셋 저장소
+│   └── cifar-10-batches-py/      # CIFAR-10 데이터셋 (자동 다운로드)
 │
-└── 문서/
-    ├── README.md                 # ⭐ 프로젝트 개요 및 시작 가이드 (현재 파일)
-    ├── PROJECT_SUMMARY.md        # 전체 기능 상세 설명
+└── docs/
+    ├── PROJECT_SUMMARY.md        # 전체 기능 상세 설명 (현재 파일)
     ├── ALGORITHM_DESCRIPTION.md  # 알고리즘 상세 설명
     ├── HUGGINGFACE_DATASETS.md   # Hugging Face 사용 가이드
     ├── SSH_SERVER_GUIDE.md       # SSH 서버 실행 가이드
+    ├── TECHNOLOGY_STACK.md       # 기술 스택택 설명
+    ├── METRICS_MAPPING.md        # 품질 지표 설명
     └── LOCAL_USE_ONLY.md         # 로컬 사용 가이드
 ```
 
-**코드 이해 순서**:
-1. `app.py` - 전체 구조와 탭 구성 파악
+**코드 구성**:
+1. `app.py` - 전체 구조와 탭 
 2. `src/ui/common.py` - 공통 UI 컴포넌트 (사이드바, CSS)
 3. `src/ui/tab1_single.py` ~ `tab4_guide.py` - 각 탭별 UI 로직
-4. `src/text_quality.py`, `src/image_quality.py` - 핵심 알고리즘 이해
+4. `src/text_quality.py`, `src/image_quality.py` - 핵심 알고리즘 
 5. `src/dataset_analyzer.py` - 데이터셋 처리 로직
 
 ## 🧪 사용 방법
