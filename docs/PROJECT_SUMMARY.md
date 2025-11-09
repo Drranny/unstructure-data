@@ -161,6 +161,7 @@
 unstructure/
 ├── app.py                          # Streamlit 메인 애플리케이션
 ├── requirements.txt                # Python 패키지 의존성 목록
+├── README.md                       # 프로젝트 설명서
 │
 ├── src/                            # 핵심 분석 모듈
 │   ├── __init__.py
@@ -188,12 +189,13 @@ unstructure/
 ├── data/                          # 다운로드된 데이터셋 저장소
 │   └── cifar-10-batches-py/      # CIFAR-10 데이터셋 (자동 다운로드)
 │
-└── 문서/
-    ├── README.md                  # 프로젝트 설명서
+└── docs/
     ├── PROJECT_SUMMARY.md        # 전체 기능 상세 설명 (현재 파일)
     ├── ALGORITHM_DESCRIPTION.md  # 알고리즘 상세 설명
     ├── HUGGINGFACE_DATASETS.md   # Hugging Face 사용 가이드
     ├── SSH_SERVER_GUIDE.md       # SSH 서버 실행 가이드
+    ├── TECHNOLOGY_STACK.md       # 기술 스택택 설명
+    ├── METRICS_MAPPING.md        # 품질 지표 설명
     └── LOCAL_USE_ONLY.md         # 로컬 사용 가이드
 ```
 
