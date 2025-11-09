@@ -26,9 +26,8 @@ def analyze_dataset_images(images: List[Image.Image], max_samples: int = 100) ->
         return {
             "총 이미지 수": 0,
             "평균 해상도": 0.0,
-            "평균 선명도": 0.0,
-            "평균 노이즈": 0.0,
-            "평균 중복도": 0.0,
+            "평균 유효성": 0.0,
+            "평균 다양성": 0.0,
             "평균 종합 점수": 0.0,
         }
     
@@ -44,11 +43,10 @@ def analyze_dataset_images(images: List[Image.Image], max_samples: int = 100) ->
     
     all_scores = {
         "해상도": [],
-        "선명도": [],
-        "노이즈": [],
-        "중복도": [],
+        "유효성": [],
         "종합점수": []
     }
+    # 다양성은 전체 데이터셋 통계에만 포함 (개별 점수에는 제외)
     
     # 실제 해상도 정보 저장 (width x height)
     actual_resolutions = []  # (width, height) 튜플 리스트
@@ -59,58 +57,50 @@ def analyze_dataset_images(images: List[Image.Image], max_samples: int = 100) ->
     image_hashes = []
     
     # 각 이미지 분석
+    # 개별 이미지 점수 계산 시에는 항상 다양성을 제외 (다양성은 전체 데이터셋 간 비교 지표)
     for img in images:
-        scores = analyze_image_quality(img, is_single_image=is_single_image)
+        # 개별 이미지 분석 시에는 항상 is_single_image=True로 호출 (다양성 제외)
+        scores = analyze_image_quality(img, is_single_image=True)
         
-        score_count = len(scores) # 단일 분석 시 3, 배치 분석 시 4
-        
-        if score_count == 3: # 단일 분석 (중복도 제외)
-            total = (scores["해상도"] + scores["선명도"] + (1 - scores["노이즈"])) / 3
-            dup_score = "N/A"
-        else: # 배치 분석 (중복도 포함)
-            total = (scores["해상도"] + scores["선명도"] + (1 - scores["노이즈"]) + (1 - scores["중복도"])) / 4
-            dup_score = scores["중복도"]
+        # 개별 이미지 점수는 항상 해상도 + 유효성만 사용 (다양성 제외)
+        total = (scores["해상도"] + scores["유효성"]) / 2
         
         all_scores["해상도"].append(scores["해상도"])
-        all_scores["선명도"].append(scores["선명도"])
-        all_scores["노이즈"].append(scores["노이즈"])
-        
-        if not is_single_image:
-             # 중복도 항목은 배치 분석일 때만 scores에 있으므로 저장
-            all_scores["중복도"].append(scores["중복도"])
+        all_scores["유효성"].append(scores["유효성"])
             
         all_scores["종합점수"].append(total)
         
-        # 개별 점수 저장
+        # 개별 점수 저장 (다양성 제외 - 다양성은 전체 데이터셋 통계에만 포함)
         individual_scores.append({
             "해상도": round(scores["해상도"], 3),
-            "선명도": round(scores["선명도"], 3),
-            "노이즈": round(scores["노이즈"], 3),
-            "중복도": dup_score if isinstance(dup_score, str) else round(dup_score, 3),
+            "유효성": round(scores["유효성"], 3),
             "종합점수": round(total, 3),
         })
         
         # 실제 해상도 저장 (width x height)
         actual_resolutions.append((img.width, img.height))
         
-        # 중복도 계산을 위한 해시 저장
+        # 다양성 계산을 위한 해시 저장 (배치 분석일 때만)
         if not is_single_image:
-            image_hashes.append(imagehash.average_hash(img))
+            try:
+                image_hashes.append(imagehash.average_hash(img))
+            except Exception as e:
+                # 이미지 해시 계산 실패 시 스킵 (손상된 이미지 등)
+                print(f"⚠️ 이미지 해시 계산 실패: {e}. 해당 이미지는 다양성 계산에서 제외됩니다.")
     
         
     # 종합 점수 재계산: 개별 평균을 기반으로 계산
     avg_resolution = np.mean(all_scores["해상도"])
-    avg_sharpness  = np.mean(all_scores["선명도"])
-    avg_noise      = np.mean(all_scores["노이즈"])
+    avg_validity   = np.mean(all_scores["유효성"])
     
     if not is_single_image and len(image_hashes) > 1:
-        # 배치 분석: 중복도 계산 및 4개 지표 기반 최종 종합 점수 계산
+        # 배치 분석: 다양성 계산 및 3개 지표 기반 최종 종합 점수 계산
         avg_dup = calculate_duplication_score(image_hashes)
-        avg_total = np.mean(all_scores["종합점수"])
+        avg_total = (avg_resolution + avg_validity + (1 - avg_dup)) / 3
         report_avg_dup = round(avg_dup, 3) 
     else:
-        # 단일 분석: 중복도 N/A 처리 및 3개 지표 기반 최종 종합 점수 계산
-        avg_total = np.mean(all_scores["종합점수"])
+        # 단일 분석: 다양성 N/A 처리 및 2개 지표 기반 최종 종합 점수 계산
+        avg_total = (avg_resolution + avg_validity) / 2
         report_avg_dup = "N/A" 
     
     # 해상도 통계 계산
@@ -123,10 +113,10 @@ def analyze_dataset_images(images: List[Image.Image], max_samples: int = 100) ->
         "총 이미지 수": len(images),
         "원본 데이터셋 크기": original_count if original_count > len(images) else len(images),
         "샘플링 여부": "예" if original_count > len(images) else "아니오",
+        "단일 분석 여부": "예" if is_single_image else "아니오",  # 단일/배치 분석 구분
         "평균 해상도": round(avg_resolution, 3),
-        "평균 선명도": round(avg_sharpness, 3),
-        "평균 노이즈": round(avg_noise, 3),
-        "평균 중복도": report_avg_dup,
+        "평균 유효성": round(avg_validity, 3),
+        "평균 다양성": report_avg_dup,
         "평균 종합 점수": round(avg_total, 3),
         "최소 종합 점수": round(np.min(all_scores["종합점수"]), 3),
         "최대 종합 점수": round(np.max(all_scores["종합점수"]), 3),
@@ -160,8 +150,8 @@ def analyze_dataset_texts(texts: List[str], max_samples: int = 100) -> Dict:
     if len(texts) == 0:
         return {
             "총 텍스트 수": 0,
-            "평균 정확성": 0.0,
-            "평균 중복도": 0.0,
+            "평균 형식 정확성": 0.0,
+            "평균 다양성": 0.0,
             "평균 완전성": 0.0,
             "평균 종합 점수": 0.0,
         }
@@ -172,8 +162,8 @@ def analyze_dataset_texts(texts: List[str], max_samples: int = 100) -> Dict:
         texts = random.sample(texts, max_samples)
     
     all_scores = {
-        "정확성": [],
-        "중복도": [],
+        "형식 정확성": [],
+        "다양성": [],
         "완전성": [],
         "종합점수": []
     }
@@ -189,19 +179,19 @@ def analyze_dataset_texts(texts: List[str], max_samples: int = 100) -> Dict:
         scores = analyze_text_quality(text)
         total = calc_total_score(scores)
         
-        accuracy = scores["정확성(오탈자비율)"]
-        duplication = scores["중복도(유사도역비율)"]
-        completeness = scores["완전성(문장충실도)"]
+        accuracy = scores["형식 정확성"]
+        diversity = scores["다양성"]
+        completeness = scores["완전성"]
         
-        all_scores["정확성"].append(accuracy)
-        all_scores["중복도"].append(duplication)
+        all_scores["형식 정확성"].append(accuracy)
+        all_scores["다양성"].append(diversity)
         all_scores["완전성"].append(completeness)
         all_scores["종합점수"].append(total)
         
-        # 개별 점수 저장
+        # 개별 점수 저장 (키 이름 통일: 형식 정확성, 다양성, 완전성)
         individual_scores.append({
-            "정확성": round(accuracy, 3),
-            "중복도": round(duplication, 3),
+            "형식 정확성": round(accuracy, 3),
+            "다양성": round(diversity, 3),
             "완전성": round(completeness, 3),
             "종합점수": round(total, 3),
         })
@@ -209,8 +199,8 @@ def analyze_dataset_texts(texts: List[str], max_samples: int = 100) -> Dict:
     if len(all_scores["종합점수"]) == 0:
         return {
             "총 텍스트 수": 0,
-            "평균 정확성": 0.0,
-            "평균 중복도": 0.0,
+            "평균 형식 정확성": 0.0,
+            "평균 다양성": 0.0,
             "평균 완전성": 0.0,
             "평균 종합 점수": 0.0,
         }
@@ -218,8 +208,8 @@ def analyze_dataset_texts(texts: List[str], max_samples: int = 100) -> Dict:
     # 통계 계산
     result = {
         "총 텍스트 수": len(all_scores["종합점수"]),
-        "평균 정확성": round(np.mean(all_scores["정확성"]), 3),
-        "평균 중복도": round(np.mean(all_scores["중복도"]), 3),
+        "평균 형식 정확성": round(np.mean(all_scores["형식 정확성"]), 3),
+        "평균 다양성": round(np.mean(all_scores["다양성"]), 3),
         "평균 완전성": round(np.mean(all_scores["완전성"]), 3),
         "평균 종합 점수": round(np.mean(all_scores["종합점수"]), 3),
         "최소 종합 점수": round(np.min(all_scores["종합점수"]), 3),
@@ -568,6 +558,10 @@ def load_huggingface_dataset(dataset_name: str, num_samples: int = 100, split: s
             else:
                 raise Exception(f"데이터셋 로드 실패: {base_dataset_name}\n에러: {e}")
         
+        # 데이터셋이 None인지 확인
+        if dataset is None:
+            raise Exception(f"데이터셋 로드 실패: {base_dataset_name} (데이터셋이 None입니다)")
+        
         # 이미지 컬럼 자동 감지
         if image_column is None:
             # 일반적인 이미지 컬럼 이름들
@@ -886,7 +880,7 @@ def load_huggingface_text_dataset(dataset_name: str, num_samples: int = 100, spl
                         raise Exception(f"데이터셋 로드 실패: {base_dataset_name}\n에러: {e}")
         
         if dataset is None:
-            raise Exception(f"데이터셋 로드 실패: {base_dataset_name} (최대 재시도 횟수 초과)")
+            raise Exception(f"데이터셋 로드 실패: {base_dataset_name} (최대 재시도 횟수 초과 또는 데이터셋이 None입니다)")
         
         # 텍스트 컬럼 자동 감지
         if text_column is None:

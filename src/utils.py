@@ -206,9 +206,9 @@ def generate_text_report_pdf(text_scores: dict, total_score: float, grade: str, 
     for key, value in text_scores.items():
         # 간단한 설명 추가
         description_map = {
-            "정확성(오탈자비율)": "오탈자 및 맞춤법 오류 검사",
-            "중복도(유사도역비율)": "문장 간 유사도 분석",
-            "완전성(문장충실도)": "의미 있는 문장의 비율"
+            "형식 정확성": "오탈자 및 맞춤법 오류 검사 (형식 정확성)",
+            "다양성": "문장 간 유사도 분석 (중복이 적을수록 다양성 높음)",
+            "완전성": "의미 있는 문장의 비율 (완전성)"
         }
         desc = description_map.get(key, "품질 지표")
         metrics_data.append([key, f"{value:.3f}", desc])
@@ -329,9 +329,8 @@ def generate_image_report_pdf(image_scores: dict, total_score: float, grade: str
         # 간단한 설명 추가
         description_map = {
             "해상도": "이미지 크기 기준 충족 여부",
-            "선명도": "이미지 선명함 정도 (Laplacian Variance)",
-            "노이즈": "이미지 노이즈 수준",
-            "중복도": "중복 이미지 비율"
+            "유효성": "이미지 품질 (선명도 및 노이즈 통합 지표)",
+            "다양성": "중복 이미지 비율 (중복이 적을수록 다양성 높음)"
         }
         desc = description_map.get(key, "품질 지표")
         # 숫자일 경우에만 소수점 포맷팅 적용
@@ -520,10 +519,11 @@ def generate_dataset_report_pdf(results: dict, data_type: str, dataset_name: str
         
         # 데이터 타입에 따라 컬럼명 결정
         if data_type == "이미지":
-            headers = ['번호', '해상도', '선명도', '노이즈', '중복도', '종합점수']
-            col_widths = [0.5*inch, 1*inch, 1*inch, 1*inch, 1*inch, 1*inch]
+            # 이미지 개별 점수에는 다양성 제외 (다양성은 전체 데이터셋 통계에만 포함)
+            headers = ['번호', '해상도', '유효성', '종합점수']
+            col_widths = [0.5*inch, 1*inch, 1*inch, 1*inch]
         else:  # 텍스트
-            headers = ['번호', '정확성', '중복도', '완전성', '종합점수']
+            headers = ['번호', '형식 정확성', '다양성', '완전성', '종합점수']
             col_widths = [0.5*inch, 1.2*inch, 1.2*inch, 1.2*inch, 1*inch]
         
         # 개별 점수 테이블 생성
@@ -534,17 +534,16 @@ def generate_dataset_report_pdf(results: dict, data_type: str, dataset_name: str
         for idx, score in enumerate(individual_scores[:max_items]):
             row = [str(idx + 1)]
             if data_type == "이미지":
+                # 이미지 개별 점수에는 다양성 제외
                 row.extend([
                     f"{score.get('해상도', 0):.3f}",
-                    f"{score.get('선명도', 0):.3f}",
-                    f"{score.get('노이즈', 0):.3f}",
-                    f"{score.get('중복도', 0):.3f}",
+                    f"{score.get('유효성', 0):.3f}",
                     f"{score.get('종합점수', 0):.3f}"
                 ])
             else:  # 텍스트
                 row.extend([
-                    f"{score.get('정확성', 0):.3f}",
-                    f"{score.get('중복도', 0):.3f}",
+                    f"{score.get('형식 정확성', 0):.3f}",
+                    f"{score.get('다양성', 0):.3f}",
                     f"{score.get('완전성', 0):.3f}",
                     f"{score.get('종합점수', 0):.3f}"
                 ])
@@ -588,3 +587,60 @@ def generate_dataset_report_pdf(results: dict, data_type: str, dataset_name: str
     buffer.seek(0)
     return buffer
 
+def load_quality_thresholds(config_path: str = None) -> dict:
+    """
+    품질 임계값 설정 파일을 로드합니다.
+    파일이 없으면 기본 임계값을 반환합니다.
+    
+    Args:
+        config_path: 설정 파일 경로 (None이면 기본 경로 사용)
+        
+    Returns:
+        dict: 임계값 딕셔너리
+    """
+    from .quality_evaluator import DEFAULT_THRESHOLDS
+    import json
+    
+    if config_path is None:
+        # 프로젝트 루트 기준으로 config 폴더의 quality_thresholds.json 경로 설정
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        project_root = os.path.abspath(os.path.join(current_dir, '..'))
+        config_path = os.path.join(project_root, 'config', 'quality_thresholds.json')
+    
+    if os.path.exists(config_path):
+        try:
+            with open(config_path, 'r', encoding='utf-8') as f:
+                return json.load(f)
+        except Exception as e:
+            print(f"⚠️ 품질 임계값 설정 파일 로드 실패: {e}. 기본 임계값을 사용합니다.")
+            return DEFAULT_THRESHOLDS
+    else:
+        print(f"⚠️ 품질 임계값 설정 파일 '{config_path}'을 찾을 수 없습니다. 기본 임계값을 사용합니다.")
+        return DEFAULT_THRESHOLDS
+
+def calc_total_score_with_thresholds(results: dict) -> float:
+    """
+    임계값 기반 평가 결과에서 종합 점수를 계산합니다.
+    PASS/FAIL 여부를 점수화하여 평균을 냅니다.
+    
+    Args:
+        results: 임계값 기반 평가 결과 딕셔너리
+        
+    Returns:
+        float: 종합 점수 (0.0 ~ 1.0)
+    """
+    total_score = 0.0
+    metric_count = 0
+    
+    for category, metrics in results.items():
+        for metric_name, metric_info in metrics.items():
+            if isinstance(metric_info, dict) and "status" in metric_info:
+                metric_count += 1
+                if "PASS" in metric_info["status"]:
+                    total_score += 1.0
+                elif "FAIL" in metric_info["status"]:
+                    # FAIL인 경우 점수를 0으로 처리
+                    total_score += 0.0
+                # N/A는 점수 계산에서 제외
+    
+    return total_score / max(metric_count, 1)

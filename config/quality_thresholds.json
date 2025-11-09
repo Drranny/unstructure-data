@@ -1,0 +1,95 @@
+{
+  "semantic_accuracy": {
+    "f1_score": {
+      "threshold": 0.9,
+      "metric": "F1-Score",
+      "description": "F1 점수는 정밀도와 재현율의 조화 평균입니다."
+    },
+    "iou": {
+      "threshold": 0.7,
+      "metric": "IOU",
+      "description": "Intersection over Union, 객체 탐지 정확도 지표입니다."
+    },
+    "map": {
+      "threshold": 0.7,
+      "metric": "mAP",
+      "description": "mean Average Precision, 평균 정밀도입니다."
+    }
+  },
+  "consistency": {
+    "kappa": {
+      "threshold": 0.8,
+      "metric": "Cohen's Kappa",
+      "description": "평가자 간 일관성을 측정하는 지표입니다."
+    },
+    "irr": {
+      "threshold": 0.8,
+      "metric": "IRR",
+      "description": "Inter-Rater Reliability, 평가자 간 신뢰도입니다."
+    }
+  },
+  "completeness": {
+    "missing_rate": {
+      "threshold": 0.0,
+      "metric": "MissingRate",
+      "description": "필수 필드 누락 비율입니다. (낮을수록 좋음)"
+    },
+    "null_rate": {
+      "threshold": 0.05,
+      "metric": "NullRate",
+      "description": "비필수 필드 결측치 비율입니다. (낮을수록 좋음)"
+    }
+  },
+  "validity": {
+    "f1_model": {
+      "threshold": 0.8,
+      "metric": "F1-Score",
+      "description": "모델 성능 평가를 위한 F1 점수입니다."
+    },
+    "rouge_1": {
+      "threshold": 0.5,
+      "metric": "ROUGE-1",
+      "description": "ROUGE-1 점수, 단어 단위 겹침을 측정합니다."
+    },
+    "rouge_2": {
+      "threshold": 0.3,
+      "metric": "ROUGE-2",
+      "description": "ROUGE-2 점수, 2-gram 겹침을 측정합니다."
+    },
+    "rouge_l": {
+      "threshold": 0.4,
+      "metric": "ROUGE-L",
+      "description": "ROUGE-L 점수, 가장 긴 공통 부분 수열을 측정합니다."
+    },
+    "bleu": {
+      "threshold": 0.5,
+      "metric": "BLEU",
+      "description": "BLEU 점수, n-gram 정밀도를 측정합니다."
+    },
+    "cer": {
+      "threshold": 0.1,
+      "metric": "CER",
+      "description": "Character Error Rate, 문자 오류율입니다. (낮을수록 좋음)"
+    }
+  },
+  "diversity": {
+    "category_variance": {
+      "threshold": 0.1,
+      "metric": "Variance",
+      "description": "카테고리별 분포의 분산입니다."
+    },
+    "entropy": {
+      "threshold": 0.0,
+      "metric": "Entropy",
+      "description": "엔트로피, 데이터 분포의 다양성을 측정합니다."
+    }
+  },
+  "safety": {
+    "toxicity_rate": {
+      "threshold": 0.0,
+      "metric": "ToxicityRate",
+      "description": "유해 표현 검출 비율입니다. (낮을수록 좋음)"
+    }
+  }
+}
+

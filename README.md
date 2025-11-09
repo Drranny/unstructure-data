@@ -56,9 +56,12 @@
 
 - ✅ **단일 파일 분석**: 텍스트/이미지 파일 업로드 후 품질 진단
 - ✅ **데이터셋 배치 분석**: CIFAR-10, Hugging Face 데이터셋 대량 분석
-- ✅ **텍스트 품질 진단**: 정확성, 중복도, 완전성 분석
-- ✅ **이미지 품질 진단**: 해상도, 선명도, 노이즈, 중복도 분석
+- ✅ **라벨링 기반 평가**: 예측 라벨과 실제 라벨 비교 평가 (정확성, 일관성, 완전성, 유효성, 다양성, 안전성)
+- ✅ **품질 지표 가이드**: 각 분석 모드별 품질 지표와 기준 점수 참고 자료
+- ✅ **텍스트 품질 진단**: 형식 정확성, 다양성, 완전성 분석
+- ✅ **이미지 품질 진단**: 해상도, 유효성(선명도+노이즈), 다양성 분석
 - ✅ **Hugging Face 통합**: 데이터셋 검색 및 다운로드 (Streaming 지원)
+- ✅ **샘플 데이터 테스트**: 사이드바에서 샘플 데이터로 즉시 테스트 가능
 - ✅ **자동 점수화**: 0-1 범위의 품질 점수 및 A-D 등급 산출
 - ✅ **시각화**: 대시보드를 통한 직관적인 결과 확인
 - ✅ **PDF 보고서**: 분석 결과를 PDF 형식으로 다운로드 (데이터셋/파일명 정보 포함)
@@ -113,8 +116,8 @@ http://localhost:8501
 
 | 지표 | 설명 | 계산 방법 |
 |------|------|-----------|
-| **정확성** | 오탈자 및 맞춤법 오류 비율 | 패턴 기반 오류 검사 |
-| **중복도** | 문장 간 유사도 분석 | Sentence Transformer 임베딩 기반 |
+| **형식 정확성** | 오탈자 및 맞춤법 오류 비율 | 패턴 기반 오류 검사 |
+| **다양성** | 문장 간 유사도 분석 (중복이 적을수록 높음) | Sentence Transformer 임베딩 기반 |
 | **완전성** | 의미 있는 문장의 비율 | 최소 길이 이상 문장 비율 |
 
 ### 이미지 데이터
@@ -122,9 +125,8 @@ http://localhost:8501
 | 지표 | 설명 | 계산 방법 |
 |------|------|-----------|
 | **해상도** | 이미지 크기 기준 충족 여부 | 최소 512x512 기준 |
-| **선명도** | 이미지 선명함 정도 | Laplacian Variance |
-| **노이즈** | 이미지 노이즈 수준 | Gaussian Blur 차이 분석 |
-| **중복도** | 중복 이미지 비율 | ImageHash 기반 비교 |
+| **유효성** | 이미지 품질 (선명도 + 노이즈 통합) | Laplacian Variance + Gaussian Blur 차이 분석 |
+| **다양성** | 중복 이미지 비율 (중복이 적을수록 높음) | ImageHash 기반 비교 (단일 이미지 분석 시 제외) |
 
 ### 품질 등급
 
@@ -141,8 +143,8 @@ http://localhost:8501
 |------|------|------|
 | 분석 언어 | Python 3.11+ | 메인 분석 및 통합 |
 | 웹 프레임워크 | **Streamlit** | 웹 대시보드 및 UI |
-| 텍스트 진단 | `sentence-transformers` | 문장 유사도 분석 (중복도) |
-| 이미지 진단 | `opencv-python`, `imagehash`, `pillow` | 해상도, 선명도, 노이즈, 중복 분석 |
+| 텍스트 진단 | `sentence-transformers` | 문장 유사도 분석 (다양성) |
+| 이미지 진단 | `opencv-python`, `imagehash`, `pillow` | 해상도, 유효성(선명도+노이즈), 다양성 분석 |
 | 데이터셋 로드 | `torchvision`, `datasets`, `huggingface_hub` | CIFAR-10, Hugging Face 데이터셋 |
 | 딥러닝 | `torch`, `transformers` | 모델 로드 및 임베딩 |
 | 수치 연산 | `numpy`, `scikit-learn` | 통계 계산 및 유틸리티 |
@@ -151,46 +153,61 @@ http://localhost:8501
 
 ```
 unstructure/
-├── app.py                        # ⭐ 메인 앱 (949줄) - UI 및 전체 흐름
+├── app.py                        # ⭐ 메인 앱 (40줄) - 탭 생성 및 모듈 호출
 ├── requirements.txt              # Python 패키지 의존성 목록
 │
 ├── src/                          # 핵심 분석 모듈
 │   ├── __init__.py
 │   ├── text_quality.py          # ⭐ 텍스트 품질진단 알고리즘
-│   ├── image_quality.py         # ⭐ 이미지 품질진단 알고리즘
-│   ├── utils.py                 # 공통 함수 (점수 계산, 등급 산출, PDF 보고서 생성)
-│   ├── dataset_analyzer.py      # 데이터셋 로드 및 배치 분석 (613줄)
-│   └── dataset_finder.py        # Hugging Face 데이터셋 검색 (298줄)
+│   ├── image_quality.py          # ⭐ 이미지 품질진단 알고리즘
+│   ├── utils.py                  # 공통 함수 (점수 계산, 등급 산출, PDF 보고서 생성)
+│   ├── dataset_analyzer.py       # 데이터셋 로드 및 배치 분석
+│   ├── dataset_finder.py         # Hugging Face 데이터셋 검색
+│   ├── quality_evaluator.py      # 라벨링 기반 품질 평가 모듈
+│   │
+│   └── ui/                       # UI 모듈 (리팩토링)
+│       ├── __init__.py
+│       ├── common.py              # 사이드바, CSS 스타일 (약 150줄)
+│       ├── tab1_single.py         # 단일 파일 분석 탭 (약 400줄)
+│       ├── tab2_batch.py          # 데이터셋 배치 분석 탭 (약 950줄)
+│       ├── tab3_labeling.py      # 라벨링 기반 평가 탭 (약 420줄)
+│       └── tab4_guide.py          # 품질 지표 가이드 탭 (약 460줄)
 │
-├── sample_data/                 # 샘플 테스트 데이터
+├── config/                       # 설정 파일
+│   └── quality_thresholds.json   # 품질 지표 임계값 설정
+│
+├── sample_data/                  # 샘플 테스트 데이터
 │   └── sample_text.txt
 │
-├── data/                        # 다운로드된 데이터셋 저장소 (자동 생성)
-│   └── cifar-10-batches-py/     # CIFAR-10 데이터셋
+├── data/                         # 다운로드된 데이터셋 저장소 (자동 생성)
+│   └── cifar-10-batches-py/      # CIFAR-10 데이터셋
 │
 └── 문서/
-    ├── README.md                # ⭐ 프로젝트 개요 및 시작 가이드 (현재 파일)
+    ├── README.md                 # ⭐ 프로젝트 개요 및 시작 가이드 (현재 파일)
     ├── PROJECT_SUMMARY.md        # 전체 기능 상세 설명
     ├── ALGORITHM_DESCRIPTION.md  # 알고리즘 상세 설명
     ├── HUGGINGFACE_DATASETS.md   # Hugging Face 사용 가이드
-    ├── SSH_SERVER_GUIDE.md      # SSH 서버 실행 가이드
-    └── LOCAL_USE_ONLY.md        # 로컬 사용 가이드
+    ├── SSH_SERVER_GUIDE.md       # SSH 서버 실행 가이드
+    └── LOCAL_USE_ONLY.md         # 로컬 사용 가이드
 ```
 
 **코드 이해 순서**:
-1. `app.py` - 전체 구조와 UI 흐름 파악
-2. `src/text_quality.py`, `src/image_quality.py` - 핵심 알고리즘 이해
-3. `src/dataset_analyzer.py` - 데이터셋 처리 로직
+1. `app.py` - 전체 구조와 탭 구성 파악
+2. `src/ui/common.py` - 공통 UI 컴포넌트 (사이드바, CSS)
+3. `src/ui/tab1_single.py` ~ `tab4_guide.py` - 각 탭별 UI 로직
+4. `src/text_quality.py`, `src/image_quality.py` - 핵심 알고리즘 이해
+5. `src/dataset_analyzer.py` - 데이터셋 처리 로직
 
 ## 🧪 사용 방법
 
 ### 단일 파일 분석
 
 1. "단일 파일 분석" 탭 선택
-2. 텍스트 파일 (`.txt`) 또는 이미지 파일 (`.jpg`, `.png` 등) 업로드
-3. 파일 타입 선택 버튼 클릭 ("텍스트 파일로 분석" / "이미지 파일로 분석")
-4. 분석 시작 버튼 클릭
-5. 결과 확인 (품질 점수, 등급, 차트)
+2. **방법 1**: 사이드바에서 "📝 샘플 텍스트 분석" 또는 "🖼️ 샘플 이미지 분석" 버튼 클릭
+3. **방법 2**: 텍스트 파일 (`.txt`) 또는 이미지 파일 (`.jpg`, `.png` 등) 업로드
+4. 파일 타입 선택 버튼 클릭 ("텍스트 파일로 분석" / "이미지 파일로 분석")
+5. 분석 시작 버튼 클릭
+6. 결과 확인 (품질 점수, 등급, 차트)
 
 ### 데이터셋 배치 분석
 
@@ -209,7 +226,8 @@ unstructure/
 
 ### 샘플 데이터 테스트
 
-- 사이드바의 "샘플 텍스트 테스트" 버튼 사용
+- **단일 파일 분석**: 사이드바의 "📝 샘플 텍스트 분석" 또는 "🖼️ 샘플 이미지 분석" 버튼 사용
+- **라벨링 기반 평가**: 사이드바의 "샘플 라벨링 데이터 생성 (분류)" 또는 "샘플 라벨링 데이터 생성 (생성)" 버튼 사용
 - 또는 `sample_data/` 폴더에 직접 파일을 업로드
 
 ## 📝 개발 일정
@@ -246,6 +264,9 @@ unstructure/
 | **[HUGGINGFACE_DATASETS.md](HUGGINGFACE_DATASETS.md)** | Hugging Face 데이터셋 사용 가이드 | 다양한 데이터셋을 사용하고 싶을 때 |
 | **[LOCAL_USE_ONLY.md](LOCAL_USE_ONLY.md)** | 로컬 사용 가이드 | 로컬에서만 실행할 때 (간단 버전) |
 | **[SSH_SERVER_GUIDE.md](SSH_SERVER_GUIDE.md)** | SSH 서버 실행 가이드 | 서버에서 실행할 때 |
+| **[TECHNOLOGY_STACK.md](TECHNOLOGY_STACK.md)** | 기술 스택 및 프레임워크 정리 | 사용된 기술을 이해하고 싶을 때 |
+| **[QUALITY_METRICS_COMPARISON.md](QUALITY_METRICS_COMPARISON.md)** | 품질 지표 기준표 비교 | 품질 지표 변경 이력을 확인하고 싶을 때 |
+| **[METRICS_MAPPING.md](METRICS_MAPPING.md)** | 품질 지표 항목명 매핑 가이드 | 지표 이름 매핑을 확인하고 싶을 때 |
 
 ## 📄 라이선스
 
