@@ -12,6 +12,7 @@
 ## ✅ 구현 완료된 주요 기능
 
 ### 1. **단일 파일 분석 (탭 1)**
+- 샘플 데이터 테스트 기능 추가 (사이드바)
 
 #### 파일 업로드 및 분석
 - **Step 1**: 파일 업로드
@@ -37,9 +38,29 @@
   - 데이터셋/파일명 정보 포함
   - 분석 일시, 품질 점수, 등급, 상세 지표 포함
 
+### 3. **라벨링 기반 평가 (탭 3)**
+- CSV/JSON 파일 업로드 (예측 라벨 + 실제 라벨)
+- 작업 타입 선택 (classification, detection, generation, qa)
+- 품질 지표 평가:
+  - 정확성 (semantic_accuracy): F1-Score, IOU, mAP
+  - 일관성 (consistency): Cohen's Kappa, IRR
+  - 완전성 (completeness): MissingRate, NullRate
+  - 유효성 (validity): ROUGE, BLEU, CER
+  - 다양성 (diversity): CategoryVariance, Entropy
+  - 안전성 (safety): ToxicityRate
+- 임계값 기반 PASS/FAIL 판정
+- 샘플 데이터 생성 및 테스트 기능 (사이드바)
+
+### 4. **품질 지표 가이드 (탭 4)**
+- 각 분석 모드별 품질 지표 설명
+- 기준 점수 및 등급 기준 안내
+- 임계값 설정 파일 위치 안내
+
 ---
 
 ### 2. **데이터셋 배치 분석 (탭 2)**
+- 전체 통계 표에서 긴 리스트 제외 (개별 점수, 해상도 목록)
+- 해상도 분포 요약 정보만 표시
 
 #### 데이터 타입 선택
 - 이미지 / 텍스트 라디오 버튼 선택
@@ -75,7 +96,7 @@
 
 ### 텍스트 품질 진단 (`src/text_quality.py`)
 
-#### 1. 정확성 (Accuracy)
+#### 1. 형식 정확성 (Format Accuracy)
 - **방법**: 패턴 기반 오류 검사
 - **검사 항목**:
   - 연속된 공백 (double space)
@@ -83,13 +104,13 @@
   - 특수문자 비율
   - 한글 문자 비율 검증
 
-#### 2. 중복도 (Duplication)
+#### 2. 다양성 (Diversity)
 - **방법**: Sentence Transformer 기반 문장 유사도 분석
 - **모델**: `paraphrase-multilingual-MiniLM-L12-v2` (또는 `paraphrase-MiniLM-L6-v2`)
 - **알고리즘**:
   - 각 문장을 임베딩 벡터로 변환
   - 문장 간 코사인 유사도 계산
-  - 평균 유사도를 역비율로 변환 (중복 많을수록 낮은 점수)
+  - 평균 유사도를 역비율로 변환 (중복이 적을수록 높은 점수)
 
 #### 3. 완전성 (Completeness)
 - **방법**: 의미 있는 문장 비율 계산
@@ -108,26 +129,29 @@
   - 최소 차원 기준 점수 계산
   - 2048픽셀 이상 시 보너스 (+10%)
 
-#### 2. 선명도 (Sharpness)
-- **방법**: Laplacian Variance 알고리즘
-- **절차**:
-  1. 이미지를 Grayscale로 변환
-  2. Laplacian 필터 적용 (엣지 감지)
-  3. 분산(Variance) 계산
-  4. 분산값을 0-1 점수로 정규화
+#### 2. 유효성 (Validity)
+- **구성**: 선명도와 노이즈를 통합한 지표
+- **선명도 (Sharpness)**:
+  - **방법**: Laplacian Variance 알고리즘
+  - **절차**:
+    1. 이미지를 Grayscale로 변환
+    2. Laplacian 필터 적용 (엣지 감지)
+    3. 분산(Variance) 계산
+    4. 분산값을 0-1 점수로 정규화
+- **노이즈 (Noise)**:
+  - **방법**: Gaussian Blur 차이 분석
+  - **절차**:
+    1. 원본 이미지에 Gaussian Blur (5x5 커널) 적용
+    2. 원본과 블러 이미지의 절대 차이 계산
+    3. 차이의 평균값으로 노이즈 수준 측정
+    4. 노이즈 수준을 점수로 변환 (노이즈 많을수록 낮은 점수)
+- **통합**: 선명도와 노이즈 점수의 평균으로 유효성 점수 계산
 
-#### 3. 노이즈 (Noise)
-- **방법**: Gaussian Blur 차이 분석
-- **절차**:
-  1. 원본 이미지에 Gaussian Blur (5x5 커널) 적용
-  2. 원본과 블러 이미지의 절대 차이 계산
-  3. 차이의 평균값으로 노이즈 수준 측정
-  4. 노이즈 수준을 점수로 변환 (노이즈 많을수록 낮은 점수)
-
-#### 4. 중복도 (Duplication)
+#### 3. 다양성 (Diversity)
 - **방법**: ImageHash 기반 비교
 - **알고리즘**: `imagehash.average_hash` 사용
 - **배치 분석 시**: 해시값 비교를 통한 중복 이미지 감지
+- **주의**: 단일 이미지 분석 시에는 제외 (N/A)
 
 ---
 
@@ -135,16 +159,28 @@
 
 ```
 unstructure/
-├── app.py                          # Streamlit 메인 애플리케이션 (949줄)
+├── app.py                          # Streamlit 메인 애플리케이션 (40줄) ⭐ 리팩토링 완료
 ├── requirements.txt                # Python 패키지 의존성 목록
 │
 ├── src/                            # 핵심 분석 모듈
 │   ├── __init__.py
 │   ├── text_quality.py            # 텍스트 품질 진단 알고리즘
 │   ├── image_quality.py           # 이미지 품질 진단 알고리즘
-│   ├── utils.py                   # 공통 함수 (점수 계산, 등급 산출)
-│   ├── dataset_analyzer.py       # 데이터셋 로드 및 배치 분석 (613줄)
-│   └── dataset_finder.py         # Hugging Face 데이터셋 검색 (298줄)
+│   ├── utils.py                   # 공통 함수 (점수 계산, 등급 산출, PDF 보고서 생성)
+│   ├── dataset_analyzer.py        # 데이터셋 로드 및 배치 분석
+│   ├── dataset_finder.py          # Hugging Face 데이터셋 검색
+│   ├── quality_evaluator.py       # 라벨링 기반 품질 평가 모듈
+│   │
+│   └── ui/                        # UI 모듈 (리팩토링: 2024년 12월)
+│       ├── __init__.py
+│       ├── common.py              # 사이드바, CSS 스타일 (약 150줄)
+│       ├── tab1_single.py         # 단일 파일 분석 탭 (약 400줄)
+│       ├── tab2_batch.py          # 데이터셋 배치 분석 탭 (약 950줄)
+│       ├── tab3_labeling.py      # 라벨링 기반 평가 탭 (약 420줄)
+│       └── tab4_guide.py          # 품질 지표 가이드 탭 (약 460줄)
+│
+├── config/                        # 설정 파일
+│   └── quality_thresholds.json   # 품질 지표 임계값 설정
 │
 ├── sample_data/                   # 샘플 테스트 데이터
 │   └── sample_text.txt
@@ -154,8 +190,9 @@ unstructure/
 │
 └── 문서/
     ├── README.md                  # 프로젝트 설명서
-    ├── ALGORITHM_DESCRIPTION.md   # 알고리즘 상세 설명
-    ├── HUGGINGFACE_DATASETS.md    # Hugging Face 사용 가이드
+    ├── PROJECT_SUMMARY.md        # 전체 기능 상세 설명 (현재 파일)
+    ├── ALGORITHM_DESCRIPTION.md  # 알고리즘 상세 설명
+    ├── HUGGINGFACE_DATASETS.md   # Hugging Face 사용 가이드
     ├── SSH_SERVER_GUIDE.md       # SSH 서버 실행 가이드
     └── LOCAL_USE_ONLY.md         # 로컬 사용 가이드
 ```
@@ -174,8 +211,8 @@ unstructure/
   - 강조 색상: `#d9e2f3`, `#e8f0f8`
 
 ### UI 구성 요소
-- **탭 구조**: 단일 파일 분석 / 데이터셋 배치 분석
-- **사이드바**: 빠른 테스트 버튼
+- **탭 구조**: 단일 파일 분석 / 데이터셋 배치 분석 / 라벨링 기반 평가 / 품질 지표 가이드
+- **사이드바**: 샘플 데이터 테스트 버튼 (텍스트, 이미지, 라벨링 데이터)
 - **명시적 버튼**: 파일 타입 선택 및 분석 시작
 - **인터랙티브 위젯**: 슬라이더, 라디오 버튼, 검색 입력
 
@@ -189,7 +226,11 @@ unstructure/
 | `opencv-python` | >=4.8.0 | 이미지 처리 (Laplacian, Gaussian Blur) |
 | `numpy` | >=1.24.0 | 수치 연산 |
 | `pillow` | >=10.0.0 | 이미지 로드/처리 |
-| `sentence-transformers` | >=2.2.0 | 텍스트 임베딩 (중복도 분석) |
+| `sentence-transformers` | >=2.2.0 | 텍스트 임베딩 (다양성 분석) |
+| `rouge-score` | >=0.1.2 | ROUGE 점수 계산 (라벨링 기반 평가) |
+| `nltk` | >=3.8 | BLEU 점수 계산 (라벨링 기반 평가) |
+| `jiwer` | >=3.0 | CER 계산 (라벨링 기반 평가) |
+| `pandas` | >=2.0.0 | 데이터프레임 처리 |
 | `torch` | >=2.0.0 | 딥러닝 프레임워크 |
 | `torchvision` | >=0.15.0 | CIFAR-10 데이터셋 로드 |
 | `transformers` | >=4.30.0 | Hugging Face 모델 지원 |
@@ -253,30 +294,39 @@ unstructure/
 
 ### 단일 파일 분석 결과
 ```python
+# 텍스트
 {
-    "정확성": 0.85,
-    "중복도": 0.73,
+    "형식 정확성": 0.85,
+    "다양성": 0.73,
     "완전성": 0.92
 }
-# 또는
+# 이미지
 {
     "해상도": 0.95,
-    "선명도": 0.82,
-    "노이즈": 0.88,
-    "중복도": 1.0
+    "유효성": 0.85,  # 선명도와 노이즈 통합
+    "다양성": None  # 단일 이미지 분석 시 제외
 }
 ```
 
 ### 배치 분석 결과 (데이터셋)
 ```python
+# 텍스트
 {
-    "평균 정확성": 0.83,
-    "최소 정확성": 0.65,
-    "최대 정확성": 0.95,
-    "표준편차 정확성": 0.12,
-    "평균 중복도": 0.71,
+    "평균 형식 정확성": 0.83,
+    "최소 형식 정확성": 0.65,
+    "최대 형식 정확성": 0.95,
+    "표준편차 형식 정확성": 0.12,
+    "평균 다양성": 0.71,
     ...
     "평균 종합 점수": 0.79
+}
+# 이미지
+{
+    "평균 해상도": 0.90,
+    "평균 유효성": 0.82,
+    "평균 다양성": 0.75,  # 전체 데이터셋 통계
+    ...
+    "평균 종합 점수": 0.82
 }
 ```
 
@@ -333,12 +383,11 @@ unstructure/
 
 ## 📝 파일별 역할
 
-### `app.py` (949줄)
+### `app.py` (40줄) ⭐ 리팩토링 완료
 - Streamlit 웹 애플리케이션 메인 파일
-- UI 레이아웃 및 사용자 인터랙션 처리
-- 두 개의 탭: 단일 파일 분석 / 데이터셋 배치 분석
-- 화이트 & 블루 테마 CSS 적용
-- 세션 상태 관리
+- 탭 생성 및 각 탭 모듈 호출만 담당
+- 2,476줄 → 40줄로 대폭 축소 (2024년 12월 리팩토링)
+- 각 탭 로직은 `src/ui/` 모듈로 분리
 
 ### `src/text_quality.py`
 - 텍스트 품질 진단 알고리즘 구현
@@ -358,25 +407,40 @@ unstructure/
   - 한글 폰트 지원 (NotoSansKR)
   - 데이터셋/파일명 정보 포함
 
-### `src/dataset_analyzer.py` (613줄)
+### `src/dataset_analyzer.py` (985줄)
 - 데이터셋 로드 및 배치 분석
 - CIFAR-10, Hugging Face, 커스텀 폴더 지원
 - 텍스트/이미지 데이터셋 배치 분석 함수
 - Streaming 및 퍼센티지 다운로드 지원
+- 개별 점수 계산 시 다양성 제외 처리 (이미지)
 
-### `src/dataset_finder.py` (298줄)
+### `src/dataset_finder.py`
 - Hugging Face 데이터셋 검색 기능
 - 인기 데이터셋 목록 조회
 - 검색 결과 필터링 및 정렬
 - 정확한 데이터셋 ID 직접 조회
 - 자동 재시도 및 폴백 처리
 
-### `src/utils.py` (514줄)
-- 점수 계산 및 등급 변환 함수
-- **PDF 보고서 생성**: 텍스트/이미지/데이터셋 분석 결과를 PDF로 생성
-  - 한글 폰트 지원 (NotoSansKR)
-  - 데이터셋/파일명 정보 포함
-  - 상세 지표 및 등급 기준 안내
+### `src/quality_evaluator.py`
+- 라벨링 기반 품질 평가 모듈
+- `evaluate_semantic_accuracy()`: 정확성 평가 (F1, IOU, mAP)
+- `evaluate_consistency()`: 일관성 평가 (Cohen's Kappa, IRR)
+- `evaluate_completeness()`: 완전성 평가 (MissingRate, NullRate)
+- `evaluate_validity()`: 유효성 평가 (ROUGE, BLEU, CER)
+- `evaluate_diversity()`: 다양성 평가 (CategoryVariance, Entropy)
+- `evaluate_safety()`: 안전성 평가 (ToxicityRate)
+- `evaluate_quality_with_thresholds()`: 임계값 기반 종합 평가
+
+### `src/ui/` (리팩토링: 2024년 12월)
+- **`common.py`**: 사이드바, CSS 스타일, 샘플 데이터 생성 함수
+- **`tab1_single.py`**: 단일 파일 분석 탭 UI 로직
+- **`tab2_batch.py`**: 데이터셋 배치 분석 탭 UI 로직
+- **`tab3_labeling.py`**: 라벨링 기반 평가 탭 UI 로직
+- **`tab4_guide.py`**: 품질 지표 가이드 탭 UI 로직
+
+### `config/quality_thresholds.json` (신규)
+- 품질 지표 임계값 설정 파일
+- 각 지표별 임계값 및 설명 포함
 
 ---
 
@@ -438,21 +502,29 @@ http://localhost:8501
 ## 💡 개발 완료 상태
 
 ### ✅ 완료된 기능
-- [x] 텍스트 품질 진단 알고리즘
-- [x] 이미지 품질 진단 알고리즘
-- [x] 단일 파일 분석 UI
-- [x] 데이터셋 배치 분석 UI
+- [x] 텍스트 품질 진단 알고리즘 (형식 정확성, 다양성, 완전성)
+- [x] 이미지 품질 진단 알고리즘 (해상도, 유효성, 다양성)
+- [x] 단일 파일 분석 UI (탭 1)
+- [x] 데이터셋 배치 분석 UI (탭 2)
+- [x] 라벨링 기반 평가 UI (탭 3)
+- [x] 품질 지표 가이드 (탭 4)
 - [x] Hugging Face 데이터셋 통합
 - [x] 데이터셋 검색 기능
 - [x] 인기 데이터셋 목록 표시
 - [x] 퍼센티지 기반 다운로드
 - [x] 커스텀 폴더 지원
 - [x] 화이트 & 블루 테마 적용
+- [x] 샘플 데이터 테스트 기능
+- [x] 품질 지표 이름 통일 (형식 정확성, 다양성, 유효성)
+- [x] 코드 리팩토링 완료 (app.py 모듈화, 2,476줄 → 40줄)
 
-### 📊 코드 통계
-- **총 파일 수**: 11개 (Python 파일 6개, 문서 5개)
-- **총 코드 라인**: 약 2,000+ 줄
-- **주요 모듈**: 5개 (`text_quality`, `image_quality`, `utils`, `dataset_analyzer`, `dataset_finder`)
+### 📊 코드 통계 (리팩토링 후)
+- **총 파일 수**: 16개 (Python 파일 11개, 문서 5개)
+- **총 코드 라인**: 약 2,300+ 줄
+- **주요 모듈**: 
+  - 분석 모듈: 6개 (`text_quality`, `image_quality`, `utils`, `dataset_analyzer`, `dataset_finder`, `quality_evaluator`)
+  - UI 모듈: 5개 (`common`, `tab1_single`, `tab2_batch`, `tab3_labeling`, `tab4_guide`)
+- **app.py**: 2,476줄 → 40줄 (약 98% 감소) ⭐ 리팩토링 완료
 
 ---
 

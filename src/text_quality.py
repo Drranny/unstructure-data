@@ -61,9 +61,9 @@ def analyze_text_quality(text: str):
     """
     if not text or len(text.strip()) == 0:
         return {
-            "정확성(오탈자비율)": 0.0,
-            "중복도(유사도역비율)": 0.0,
-            "완전성(문장충실도)": 0.0,
+            "형식 정확성": 0.0,
+            "다양성": 0.0,
+            "완전성": 0.0,
         }
     
     # 문장 단위로 분리
@@ -76,9 +76,9 @@ def analyze_text_quality(text: str):
     
     if len(sentences) == 0:
         return {
-            "정확성(오탈자비율)": 0.0,
-            "중복도(유사도역비율)": 0.0,
-            "완전성(문장충실도)": 0.0,
+            "형식 정확성": 0.0,
+            "다양성": 0.0,
+            "완전성": 0.0,
         }
     
     # 1. 정확성: 간단한 오탈자 패턴 검사 (한글/영문 혼용, 공백 오류 등)
@@ -121,9 +121,9 @@ def analyze_text_quality(text: str):
     completeness_score = min(completeness_score, 1.0)
     
     return {
-        "정확성(오탈자비율)": round(accuracy_score, 3),
-        "중복도(유사도역비율)": round(duplication_score, 3),
-        "완전성(문장충실도)": round(completeness_score, 3),
+        "형식 정확성": round(accuracy_score, 3),
+        "다양성": round(duplication_score, 3),
+        "완전성": round(completeness_score, 3),
     }
 
 def check_text_accuracy(text: str) -> float:
@@ -432,6 +432,8 @@ def check_text_duplication(sentences: list) -> float:
     문장 간 중복도를 체크합니다.
     SentenceTransformer를 사용하여 문장 유사도를 계산합니다.
     """
+    if len(sentences) == 0:
+        return 0.0  # 빈 문장 리스트는 중복도 계산 불가
     if len(sentences) < 2:
         return 1.0  # 문장이 하나면 중복 없음
     

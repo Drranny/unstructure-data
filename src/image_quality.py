@@ -13,9 +13,13 @@ def analyze_image_quality(img: Image.Image, is_single_image: bool = False):
     
     Args:
         img: PIL Image 객체
+        is_single_image: 단일 이미지 분석 여부. True일 경우 다양성 지표를 제외합니다.
         
     Returns:
         dict: 품질 지표 딕셔너리
+            - "해상도": 해상도 점수 (0.0 ~ 1.0)
+            - "유효성": 선명도와 노이즈를 통합한 유효성 점수 (0.0 ~ 1.0)
+            - "다양성": 중복도 점수 (is_single_image=True일 경우 제외)
     """
     # PIL Image를 numpy 배열로 변환
     np_img = np.array(img)
@@ -45,23 +49,20 @@ def analyze_image_quality(img: Image.Image, is_single_image: bool = False):
     # 3. 노이즈 점수
     noise_score = calculate_noise_score(gray)
     
-    # 4. 중복도 (단일 분석일 경우 None 반환)
-    # 단일 이미지의 경우 의미 없는 1.0을 반환하는 대신 None을 반환하도록 변경합니다.
-    if is_single_image:
-        duplication_score = None 
-    else:
-        # 배치 루프에서 호출되는 경우
-        duplication_score = 1.0 
-    
+    # 다양성(중복도)은 개별 이미지 점수에는 포함하지 않음
+    # (다양성은 전체 데이터셋 간 비교 지표이므로 개별 이미지 분석 시 제외)
     result = {
         "해상도": round(resolution_score, 3),
-        "선명도": round(sharpness_score, 3),
-        "노이즈": round(noise_score, 3),
+        "유효성": round((sharpness_score + (1 - noise_score)) / 2, 3),  # 선명도와 노이즈를 유효성으로 통합
     }
     
-    # 단일 이미지가 아닐 때만 중복도 점수를 추가하여 반환합니다.
-    if duplication_score is not None:
-        result["중복도"] = round(duplication_score, 3)
+    # 단일 이미지가 아닐 때만 다양성 점수를 추가 (현재는 사용되지 않지만 향후 확장 가능)
+    # 주의: 현재는 개별 이미지 점수 계산 시 항상 is_single_image=True로 호출되므로
+    # 이 분기는 실제로 사용되지 않습니다.
+    if not is_single_image:
+        # 배치 분석에서도 개별 점수에는 다양성을 포함하지 않음
+        # 다양성은 전체 데이터셋 통계에서만 계산됨
+        pass
         
     return result
 

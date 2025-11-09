@@ -13,6 +13,11 @@ scikit-learn>=1.3.0
 reportlab>=4.0.0
 pyenchant>=3.2.0
 py-hanspell>=1.1
+# 라벨링 기반 평가를 위한 추가 패키지 (선택적)
+rouge-score>=0.1.2  # ROUGE 점수 계산
+nltk>=3.8            # BLEU 점수 계산
+jiwer>=3.0           # CER (Character Error Rate) 계산
+pandas>=2.0.0        # 데이터프레임 처리
 # 참고: pyenchant는 시스템 패키지(enchant)도 필요할 수 있습니다.
 # Ubuntu/Debian: sudo apt-get install enchant
 # 위 명령어 실행 실패할 경우 sudo apt-get install libenchant-2-dev python3-enchant 로 시도 
