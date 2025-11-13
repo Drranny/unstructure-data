@@ -32,7 +32,7 @@
    - 배치 분석 결과 확인
 
 ### 3단계: 알고리즘 이해 (선택사항)
-1. **[ALGORITHM_DESCRIPTION.md](ALGORITHM_DESCRIPTION.md)** 읽기
+1. **[ALGORITHM_DESCRIPTION.md](docs/ALGORITHM_DESCRIPTION.md)** 읽기
    - 품질 진단 알고리즘 상세 설명
    - 각 지표의 계산 방법 이해
 
@@ -42,9 +42,9 @@
    - `app.py` - UI 및 전체 구조
 
 ### 4단계: 고급 기능 (필요시)
-- **[HUGGINGFACE_DATASETS.md](HUGGINGFACE_DATASETS.md)** - Hugging Face 데이터셋 사용
-- **[PROJECT_SUMMARY.md](PROJECT_SUMMARY.md)** - 전체 기능 상세 설명
-- **[SSH_SERVER_GUIDE.md](SSH_SERVER_GUIDE.md)** - 서버에서 실행하기
+- **[HUGGINGFACE_DATASETS.md](docs/HUGGINGFACE_DATASETS.md)** - Hugging Face 데이터셋 사용
+- **[PROJECT_SUMMARY.md](docs/PROJECT_SUMMARY.md)** - 전체 기능 상세 설명
+- **[SSH_SERVER_GUIDE.md](docs/SSH_SERVER_GUIDE.md)** - 서버에서 실행하기
 
 ---
 
